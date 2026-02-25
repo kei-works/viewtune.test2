@@ -1,144 +1,59 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ViewTune - Stable</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <style>
-    body { margin: 0; background: #000; color: white; font-family: -apple-system, sans-serif; overflow: hidden; }
-    #zoom-bar { position: fixed; top: 0; width: 100%; height: 60px; background: #333; display: flex; align-items: center; padding: 0 15px; gap: 10px; z-index: 100; box-sizing: border-box; }
-    .file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; border: none; }
-    .zoom-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: #ddd; color: #000; font-size: 18px; flex-shrink: 0; }
-    #page-num { font-size: 12px; min-width: 50px; text-align: center; }
-    #z-s { flex-grow: 1; max-width: 250px; height: 35px; }
-    #pdf-container { position: absolute; top: 60px; bottom: 80px; width: 100%; overflow: auto; background: #111; text-align: left; -webkit-overflow-scrolling: touch; }
-    #pdf-canvas { display: block; margin: 0; }
-    #bottom-bar { position: fixed; bottom: 0; width: 100%; height: 80px; background: #222; display: flex; align-items: center; padding: 0 15px; box-sizing: border-box; border-top: 1px solid #444; z-index: 100; }
-    #clock { font-size: 36px; font-weight: 700; min-width: 100px; margin-right: 20px; font-variant-numeric: tabular-nums; }
-    #player { display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden; }
-    .round-btn { width: 55px; height: 55px; border-radius: 50%; background: #ddd; border: none; font-size: 24px; color: #000; flex-shrink: 0; }
-    #track-info { flex: 1; min-width: 0; }
-    #s-b { width: 100%; height: 30px; }
-  </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>VT-App v2</title>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+<style>
+body{margin:0;background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden}
+#g{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999}
+#g input{background:#222;border:1px solid #444;color:#fff;padding:12px;border-radius:8px;font-size:20px;text-align:center;outline:none;width:200px;-webkit-appearance:none}
+#a-p{display:none}
+#zoom-bar{position:fixed;top:0;width:100%;height:60px;background:#333;display:flex;align-items:center;padding:0 15px;gap:10px;z-index:100;box-sizing:border-box}
+.file-select-btn{cursor:pointer;background:#ddd;color:#000;padding:8px 12px;border-radius:6px;font-size:13px;font-weight:bold;border:none}
+.zoom-btn{width:40px;height:40px;border-radius:50%;border:none;background:#ddd;color:#000;font-size:18px;flex-shrink:0}
+#page-num{font-size:12px;min-width:50px;text-align:center}
+#z-s{flex-grow:1;max-width:250px;height:35px}
+#pdf-container{position:absolute;top:60px;bottom:80px;width:100%;overflow:auto;background:#111;text-align:left;-webkit-overflow-scrolling:touch}
+#pdf-canvas{display:block;margin:0}
+#bottom-bar{position:fixed;bottom:0;width:100%;height:80px;background:#222;display:flex;align-items:center;padding:0 15px;box-sizing:border-box;border-top:1px solid #444;z-index:100}
+#clock{font-size:36px;font-weight:700;min-width:100px;margin-right:20px;font-variant-numeric:tabular-nums}
+#player{display:flex;align-items:center;gap:10px;flex:1;overflow:hidden}
+.round-btn{width:55px;height:55px;border-radius:50%;background:#ddd;border:none;font-size:24px;color:#000;flex-shrink:0}
+#s-b{width:100%;height:30px}
+</style>
 </head>
 <body>
-
-  <div id="zoom-bar">
-    <label for="f-p" class="file-select-btn">PDF選択</label>
-    <input type="file" id="f-p" accept="application/pdf">
-    <button id="b-p" class="zoom-btn">←</button>
-    <button id="n-pg" class="zoom-btn">→</button>
-    <span id="page-num">0/0</span>
-    <input type="range" id="z-s" min="50" max="300" value="100">
-  </div>
-
-  <div id="pdf-container"><canvas id="pdf-canvas"></canvas></div>
-
-  <div id="bottom-bar">
-    <div id="clock">00:00</div>
-    <div id="player">
-      <label for="f-a" class="file-select-btn">曲選択</label>
-      <input type="file" id="f-a" accept="audio/*">
-      <button id="p-b" class="round-btn">▶</button>
-      <div id="track-info">
-        <input type="range" id="s-b" min="0" max="100" value="0">
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // iOS/iPadOS での動作を最優先にした設計
-    
-    // 1. 時計の超安定起動
-    function tick() {
-      const now = new Date();
-      const h = String(now.getHours()).padStart(2, '0');
-      const m = String(now.getMinutes()).padStart(2, '0');
-      const el = document.getElementById('clock');
-      if(el) el.textContent = h + ":" + m;
-    }
-    setInterval(tick, 1000);
-    tick();
-
-    // 2. PDFライブラリの読み込み待ち
-    let pdfjsLib = window['pdfjs-dist/build/pdf'];
-    let pdfDoc = null, pageNum = 1, scale = 1.0, isRendering = false;
-
-    // input要素を見やすく隠す（iPadのファイル選択エラー防止）
-    const fp = document.getElementById('f-p');
-    const fa = document.getElementById('f-a');
-    fp.style.opacity = '0'; fp.style.position = 'absolute'; fp.style.width='1px';
-    fa.style.opacity = '0'; fa.style.position = 'absolute'; fa.style.width='1px';
-
-    const canvas = document.getElementById('pdf-canvas');
-    const ctx = canvas.getContext('2d');
-
-    async function render() {
-      if (!pdfDoc || isRendering) return;
-      isRendering = true;
-      try {
-        const page = await pdfDoc.getPage(pageNum);
-        const dpr = window.devicePixelRatio || 1;
-        const viewport = page.getViewport({ scale: scale * dpr });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        canvas.style.width = (viewport.width / dpr) + 'px';
-        canvas.style.height = (viewport.height / dpr) + 'px';
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-      } catch (e) { console.error(e); }
-      isRendering = false;
-      document.getElementById('page-num').textContent = pageNum + "/" + pdfDoc.numPages;
-    }
-
-    fp.onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async function() {
-        const data = new Uint8Array(this.result);
-        try {
-          const loadingTask = pdfjsLib.getDocument({data: data});
-          pdfDoc = await loadingTask.promise;
-          pageNum = 1;
-          render();
-        } catch (err) { alert("PDFの読み込みに失敗しました。もう一度お試しください。"); }
-      };
-      reader.readAsArrayBuffer(file);
-    };
-
-    document.getElementById('b-p').onclick = () => { if(pdfDoc && pageNum > 1) { pageNum--; render(); } };
-    document.getElementById('n-pg').onclick = () => { if(pdfDoc && pageNum < pdfDoc.numPages) { pageNum++; render(); } };
-    document.getElementById('z-s').oninput = (e) => { scale = e.target.value / 100; render(); };
-
-    // 3. 音楽再生（iOSのオートプレイ制限対策）
-    const audio = new Audio();
-    const pb = document.getElementById('p-b');
-
-    fa.onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      audio.src = URL.createObjectURL(file);
-      audio.load();
-    };
-
-    pb.onclick = () => {
-      if (!audio.src) { alert("先に曲を選択してください"); return; }
-      if (audio.paused) {
-        audio.play().catch(() => alert("再生がブロックされました。もう一度ボタンを押してください。"));
-        pb.textContent = "||";
-      } else {
-        audio.pause();
-        pb.textContent = "▶";
-      }
-    };
-
-    audio.ontimeupdate = () => {
-      if (audio.duration) document.getElementById('s-b').value = (audio.currentTime / audio.duration) * 100;
-    };
-    document.getElementById('s-b').oninput = (e) => {
-      if (audio.duration) audio.currentTime = (e.target.value / 100) * audio.duration;
-    };
-  </script>
+<div id="g"><div style="margin-bottom:15px;font-size:14px;color:#888;letter-spacing:1px">ENTER ACCESS CODE</div><input type="password" id="p" placeholder="••••" autofocus></div>
+<div id="a-p">
+<div id="zoom-bar">
+<label for="f-p" class="file-select-btn">PDF選択</label><input type="file" id="f-p" accept="application/pdf" style="display:none">
+<button id="b-p" class="zoom-btn">←</button><button id="n-pg" class="zoom-btn">→</button>
+<span id="page-num">0/0</span><input type="range" id="z-s" min="50" max="300" value="100">
+</div>
+<div id="pdf-container"><canvas id="pdf-canvas"></canvas></div>
+<div id="bottom-bar">
+<div id="clock">00:00</div>
+<div id="player">
+<label for="f-a" class="file-select-btn">曲選択</label><input type="file" id="f-a" accept="audio/*" style="display:none">
+<button id="p-b" class="round-btn">▶</button>
+<div id="track-info"><input type="range" id="s-b" min="0" max="100" value="0"></div>
+</div></div></div>
+<script>
+(function(){const _k="Mmt3",_v=s=>btoa(s).split('').reverse().join(''),_i=document.getElementById('p'),_g=document.getElementById('g'),_m=document.getElementById('a-p');
+_i.onkeydown=(e)=>{if(e.key==='Enter'){if(_v(_i.value)===_k){_g.style.display='none';_m.style.display='block';_init();}else{_i.value='';_i.placeholder="Invalid";}}};
+function _t(){const d=new Date(),h=String(d.getHours()).padStart(2,'0'),m=String(d.getMinutes()).padStart(2,'0'),c=document.getElementById('clock');if(c)c.textContent=h+":"+m}
+setInterval(_t,1000);_t();
+function _init(){const pdfjsLib=window['pdfjs-dist/build/pdf'];pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+let doc=null,pn=1,sc=1.0,rent=false;const cvs=document.getElementById('pdf-canvas'),ctx=cvs.getContext('2d');
+const render=async()=>{if(!doc||rent)return;rent=true;const pg=await doc.getPage(pn),dpr=window.devicePixelRatio||1,vp=pg.getViewport({scale:sc*dpr});cvs.width=vp.width;cvs.height=vp.height;cvs.style.width=(vp.width/dpr)+'px';cvs.style.height=(vp.height/dpr)+'px';await pg.render({canvasContext:ctx,viewport:vp}).promise;rent=false;document.getElementById('page-num').textContent=pn+"/"+doc.numPages;};
+document.getElementById('f-p').onchange=(e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(){const d=new Uint8Array(this.result);doc=await pdfjsLib.getDocument({data:d}).promise;pn=1;render();};r.readAsArrayBuffer(f);};
+document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};document.getElementById('z-s').oninput=(e)=>{sc=e.target.value/100;render()};
+const au=new Audio(),pb=document.getElementById('p-b'),fa=document.getElementById('f-a'),sb=document.getElementById('s-b');
+fa.onchange=(e)=>{const f=e.target.files[0];if(!f)return;au.src=URL.createObjectURL(f);au.load();};
+pb.onclick=()=>{if(!au.src)return;if(au.paused){au.play().catch(()=>{});pb.textContent="||"}else{au.pause();pb.textContent="▶"}};
+au.ontimeupdate=()=>{if(au.duration)sb.value=(au.currentTime/au.duration)*100};
+sb.oninput=(e)=>{if(au.duration)au.currentTime=(e.target.value/100)*au.duration};}})();
+</script>
 </body>
 </html>
