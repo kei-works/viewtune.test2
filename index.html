@@ -1,123 +1,273 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ViewTune v2</title>
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
-<style>
-body{margin:0;background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden}
-/* 上部操作バー */
-#zoom-bar{position:fixed;top:0;width:100%;height:70px;background:#333;display:flex;align-items:center;padding:0 15px;gap:10px;z-index:100;box-sizing:border-box}
-.file-select-btn{cursor:pointer;background:#ddd;color:#000;padding:8px 12px;border-radius:6px;font-size:13px;font-weight:bold;border:none}
-.zoom-btn{width:40px;height:40px;border-radius:50%;border:none;background:#ddd;color:#000;font-size:18px;flex-shrink:0}
-#page-num{font-size:12px;min-width:50px;text-align:center}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kei.works ViewTune</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --accent-color: #ffffff;
+        }
 
-/* バーとファイル名をセットにするコンテナ */
-.control-set{display:flex;flex-direction:column;flex-grow:1;max-width:200px;gap:2px}
-.file-label{font-size:10px;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
 
-#z-s{width:100%;height:30px}
+        /* 起動画面 */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1s ease;
+        }
 
-/* PDF表示エリア */
-#pdf-container{position:absolute;top:70px;bottom:90px;width:100%;overflow:auto;background:#111;text-align:left;-webkit-overflow-scrolling:touch}
-#pdf-canvas{display:block;margin:0}
+        .splash-logo {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 3rem;
+            font-weight: 100;
+            letter-spacing: 0.5rem;
+            color: #fff;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 1.5s forwards;
+        }
 
-/* 下部再生バー */
-#bottom-bar{position:fixed;bottom:0;width:100%;height:90px;background:#222;display:flex;align-items:center;padding:0 15px;box-sizing:border-box;border-top:1px solid #444;z-index:100}
-#clock{font-size:36px;font-weight:700;min-width:100px;margin-right:20px;font-variant-numeric:tabular-nums}
-#player{display:flex;align-items:center;gap:10px;flex:1;overflow:hidden}
-.round-btn{width:40px;height:40px;border-radius:50%;background:#ddd;border:none;font-size:18px;color:#000;flex-shrink:0}
-#s-b{width:100%;height:30px}
-</style>
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* メインレイアウト */
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ヘッダー・時計エリア */
+        header {
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111;
+            border-bottom: 1px solid #333;
+        }
+
+        .clock-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* アナログ時計 */
+        #analog-clock {
+            width: 40px;
+            height: 40px;
+        }
+
+        /* デジタル時計 */
+        #digital-clock {
+            font-size: 1.4rem;
+            font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+            font-variant-numeric: tabular-nums;
+            font-weight: 300;
+        }
+
+        .logo-small {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.9rem;
+            letter-spacing: 0.2rem;
+            opacity: 0.6;
+        }
+
+        /* PDF・コンテンツエリア */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* コントロール（オーディオ） */
+        .controls {
+            padding: 15px;
+            background: #111;
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid #333;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-upload {
+            padding: 8px 16px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-right: 10px;
+        }
+
+        .custom-file-upload:hover {
+            background: #222;
+        }
+    </style>
 </head>
 <body>
 
-<div id="zoom-bar">
-  <label for="f-p" class="file-select-btn">PDF選択</label>
-  <input type="file" id="f-p" accept="application/pdf" style="display:none">
-  <button id="b-p" class="zoom-btn">←</button>
-  <button id="n-pg" class="zoom-btn">→</button>
-  <span id="page-num">0/0</span>
-  
-  <div class="control-set">
-    <div id="pdf-name" class="file-label">PDF未選択</div>
-    <input type="range" id="z-s" min="50" max="300" value="100">
-  </div>
-</div>
-
-<div id="pdf-container"><canvas id="pdf-canvas"></canvas></div>
-
-<div id="bottom-bar">
-  <div id="clock">00:00</div>
-  <div id="player">
-    <label for="f-a" class="file-select-btn">曲選択</label>
-    <input type="file" id="f-a" accept="audio/*" style="display:none">
-    <button id="p-b" class="round-btn">▶</button>
-    
-    <div class="control-set">
-      <div id="audio-name" class="file-label">曲未選択</div>
-      <input type="range" id="s-b" min="0" max="100" value="0">
+    <div id="splash-screen">
+        <div class="splash-logo">Kei.works</div>
     </div>
-  </div>
-</div>
 
-<script>
-(function(){
-  function updateClock(){
-    const d=new Date(),h=String(d.getHours()).padStart(2,'0'),m=String(d.getMinutes()).padStart(2,'0');
-    const c=document.getElementById('clock');
-    if(c) c.textContent=h+":"+m;
-  }
-  setInterval(updateClock, 1000); updateClock();
+    <div class="container">
+        <header>
+            <div class="logo-small">Kei.works</div>
+            <div class="clock-container">
+                <canvas id="analog-clock"></canvas>
+                <div id="digital-clock">00:00:00</div>
+            </div>
+        </header>
 
-  const pdfjsLib=window['pdfjs-dist/build/pdf'];
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
-  
-  let doc=null, pn=1, sc=1.0, rent=false;
-  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d');
+        <div class="content-area">
+            <iframe id="pdf-viewer" src=""></iframe>
+            <div id="placeholder-text" style="position:absolute; color:#444;">PDFを読み込んでください</div>
+        </div>
 
-  async function render(){
-    if(!doc || rent) return;
-    rent=true;
-    try {
-      const pg=await doc.getPage(pn);
-      const dpr=window.devicePixelRatio||1;
-      const vp=pg.getViewport({scale:sc*dpr});
-      cvs.width=vp.width; cvs.height=vp.height;
-      cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
-      await pg.render({canvasContext:ctx, viewport:vp}).promise;
-    } catch(e) { console.error(e); }
-    rent=false;
-    document.getElementById('page-num').textContent=pn+"/"+doc.numPages;
-  }
+        <div class="controls">
+            <label class="custom-file-upload">
+                <input type="file" id="pdf-input" accept="application/pdf"> PDF選択
+            </label>
+            <label class="custom-file-upload">
+                <input type="file" id="audio-input" accept="audio/*"> 音源選択
+            </label>
+            <audio id="audio-player" controls></audio>
+        </div>
+    </div>
 
-  document.getElementById('f-p').onchange=(e)=>{
-    const f=e.target.files[0]; if(!f) return;
-    document.getElementById('pdf-name').textContent = f.name; // ファイル名表示
-    const r=new FileReader(); r.onload=async function(){
-      const d=new Uint8Array(this.result);
-      doc=await pdfjsLib.getDocument({data:d}).promise; pn=1; render();
-    }; r.readAsArrayBuffer(f);
-  };
+    <script>
+        // 起動画面の処理
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('splash-screen').style.display = 'none';
+                }, 1000);
+            }, 2000);
+        });
 
-  document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
-  document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
-  document.getElementById('z-s').oninput=(e)=>{sc=e.target.value/100;render()};
+        // 時計の更新
+        function updateClocks() {
+            const now = new Date();
+            
+            // デジタル時計の更新
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('digital-clock').textContent = `${h}:${m}:${s}`;
 
-  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a'), sb=document.getElementById('s-b');
-  fa.onchange=(e)=>{
-    const f=e.target.files[0]; if(!f) return;
-    document.getElementById('audio-name').textContent = f.name; // ファイル名表示
-    au.src=URL.createObjectURL(f); au.load();
-  };
-  pb.onclick=()=>{
-    if(!au.src) return;
-    if(au.paused){ au.play().catch(()=>{}); pb.textContent="||"; }
-    else { au.pause(); pb.textContent="▶"; }
-  };
-  au.ontimeupdate=()=>{ if(au.duration) sb.value=(au.currentTime/au.duration)*100; };
-  sb.oninput=(e)=>{ if(au.duration) au.currentTime=(e.target.value/100)*au.duration; };
-})();
-</script>
+            // アナログ時計の描画
+            drawAnalogClock(now);
+        }
+
+        function drawAnalogClock(now) {
+            const canvas = document.getElementById('analog-clock');
+            const ctx = canvas.getContext('2d');
+            const radius = canvas.width / 2;
+            
+            // サイズ調整（Retinaディスプレイ対応）
+            canvas.width = 80;
+            canvas.height = 80;
+            canvas.style.width = '40px';
+            canvas.style.height = '40px';
+            const scale = 40;
+            
+            ctx.clearRect(0, 0, 80, 80);
+            ctx.translate(scale, scale);
+            
+            // 外枠
+            ctx.beginPath();
+            ctx.arc(0, 0, scale - 2, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            // 短針
+            drawHand(ctx, (hours % 12 + minutes/60) * 30, scale * 0.5, 3, '#fff');
+            // 長針
+            drawHand(ctx, (minutes + seconds/60) * 6, scale * 0.7, 2, '#fff');
+            // 秒針
+            drawHand(ctx, seconds * 6, scale * 0.8, 1, '#ff3b30'); // 秒針だけ赤色でアクセント
+
+            // 中心点
+            ctx.beginPath();
+            ctx.arc(0, 0, 2, 0, 2 * Math.PI);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
+
+        function drawHand(ctx, deg, length, width, color) {
+            ctx.save();
+            ctx.rotate(deg * Math.PI / 180);
+            ctx.beginPath();
+            ctx.moveTo(0, 5); // 少し後ろに突き出す
+            ctx.lineTo(0, -length);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        setInterval(updateClocks, 1000);
+        updateClocks();
+
+        // ファイル読み込み処理
+        document.getElementById('pdf-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                document.getElementById('pdf-viewer').src = url;
+                document.getElementById('placeholder-text').style.display = 'none';
+            }
+        });
+
+        document.getElementById('audio-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                document.getElementById('audio-player').src = url;
+            }
+        });
+    </script>
 </body>
 </html>
