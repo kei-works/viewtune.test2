@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
-/* 基本動作 */
+/* iOS/Android共通：標準動作を抑制 */
 body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
 
 /* 起動画面 */
@@ -18,13 +18,13 @@ body { margin: 0; background: #000; color: #fff; font-family: -apple-system, san
 .splash-logo { font-family: 'Montserrat', sans-serif; font-size: 26px; font-weight: 100; letter-spacing: 12px; animation: pulse 2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
-.main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; }
+.main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; } 
 aside { width: 150px; min-width: 150px; height: 100vh; background: #111; border-right: 1px solid #333; display: flex; flex-direction: column; align-items: center; padding: 15px 10px; box-sizing: border-box; overflow-y: auto; z-index: 100; -webkit-overflow-scrolling: touch; }
 .sep { width: 100%; border-bottom: 1px solid #333; margin: 12px 0; }
 
 #clock-cvs { width: 120px; height: 120px; }
 
-/* デジタル時計のサイズ調整（太字解除） */
+/* デジタル時計のサイズのみ変更 */
 #digital-clock { 
   font-size: 1.6rem; 
   font-weight: normal; 
@@ -76,3 +76,73 @@ aside { width: 150px; min-width: 150px; height: 100vh; background: #111; border-
   </aside>
   <main id="pdf-container"><canvas id="pdf-canvas"></canvas></main>
 </div>
+
+<script>
+(function(){
+  // --- スプラッシュ解除 (点滅防止版) ---
+  const splash = document.getElementById('splash');
+  const main = document.getElementById('main-content');
+  let unlocked = false;
+  
+  function unlock() {
+    if (unlocked) return;
+    unlocked = true;
+    splash.style.opacity = '0';
+    main.style.visibility = 'visible';
+    setTimeout(() => { splash.style.display = 'none'; }, 1000);
+  }
+
+  // 読み込み完了または3秒経過で解除
+  window.addEventListener('load', () => { setTimeout(unlock, 1000); });
+  setTimeout(unlock, 3000); 
+
+  // --- 時計 ---
+  function updateClock(){
+    try {
+      const d=new Date(); 
+      document.getElementById('digital-clock').textContent = d.toTimeString().split(' ')[0];
+      const canvas = document.getElementById('clock-cvs'); 
+      const ctx = canvas.getContext('2d');
+      canvas.width = 240; canvas.height = 240; ctx.translate(120,120);
+      ctx.beginPath(); ctx.arc(0,0,110,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
+      ctx.fillStyle='#fff'; ctx.font='bold 18px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      for(let i=1; i<=12; i++){ const angle = (i * 30 - 90) * (Math.PI / 180); ctx.fillText(i, Math.cos(angle)*88, Math.sin(angle)*88); }
+      const h=(d.getHours()%12+d.getMinutes()/60)*30, m=(d.getMinutes()+d.getSeconds()/60)*6, s=d.getSeconds()*6;
+      drawHand(ctx,h,60,6,'#fff'); drawHand(ctx,m,85,4,'#fff'); drawHand(ctx,s,95,2,'#ff3b30');
+    } catch(e) {}
+  }
+  function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
+  setInterval(updateClock, 1000); updateClock();
+
+  function updateSliderFill(el){ const val = (el.value - el.min) / (el.max - el.min) * 100; el.style.background = `linear-gradient(to right, #fff ${val}%, #444 ${val}%)`; }
+
+  // --- PDF ---
+  let doc=null, pn=1, sc=1.0, rent=false;
+  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container = document.getElementById('pdf-container');
+
+  async function render(){
+    if(!doc || rent) return; rent=true;
+    try {
+      const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1; const vp=pg.getViewport({scale:sc*dpr});
+      cvs.width=vp.width; cvs.height=vp.height;
+      cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
+      await pg.render({canvasContext:ctx, viewport:vp}).promise;
+    } catch(e){}
+    rent=false; document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
+  }
+
+  try {
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    document.getElementById('f-p').onchange=(e)=>{
+      const f=e.target.files[0]; if(!f) return;
+      document.getElementById('pdf-name').textContent = f.name;
+      const r=new FileReader(); r.onload=async function(){ 
+        try {
+          doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; render(); 
+        } catch(err) { alert("PDF読み込み失敗"); }
+      }; r.readAsArrayBuffer(f);
+    };
+  } catch(e) {}
+
+  let initialDist = null, initialScale = 1, isMoving = false, lastX, lastY;
