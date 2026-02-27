@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kei.works ViewTune v3.2</title>
+    <title>Kei.works ViewTune v3.3</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -41,7 +41,7 @@
             width: 250px; background-color: var(--sidebar-color);
             border-right: 1px solid var(--border-color);
             display: flex; flex-direction: column; align-items: center;
-            padding: 20px 15px; box-sizing: border-box; gap: 20px; overflow-y: auto;
+            padding: 20px 15px; box-sizing: border-box; gap: 15px; overflow-y: auto;
         }
 
         .logo-small { font-family: 'Montserrat', sans-serif; font-size: 0.8rem; letter-spacing: 0.2rem; opacity: 0.5; }
@@ -54,40 +54,43 @@
             font-variant-numeric: tabular-nums; font-weight: 300; margin-bottom: 5px;
         }
 
-        /* --- カスタムプレイヤー --- */
+        /* カスタムプレイヤー */
         .audio-section {
-            width: 100%; display: flex; flex-direction: column; gap: 10px;
-            padding: 20px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
+            width: 100%; display: flex; flex-direction: column; gap: 8px;
+            padding: 15px 0; border-top: 1px solid var(--border-color);
         }
-
-        .audio-top-row {
-            display: flex; justify-content: space-between; align-items: center; width: 100%;
-        }
-
+        .audio-top-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         #play-btn {
             background: none; border: 1px solid #fff; color: #fff;
-            padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 0.8rem;
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.2rem;
+            display: flex; justify-content: center; align-items: center;
         }
-
         #time-display { font-family: "SF Mono", monospace; font-size: 0.8rem; opacity: 0.8; }
+        #seek-slider { width: 100%; cursor: pointer; accent-color: var(--accent-red); margin-bottom: 10px; }
 
-        /* スライダーの見た目カスタマイズ */
-        #seek-slider {
-            width: 100%; cursor: pointer; accent-color: var(--accent-red);
+        /* ページ送りボタン */
+        .page-controls {
+            display: flex; justify-content: center; gap: 20px; width: 100%;
+            padding-bottom: 15px; border-bottom: 1px solid var(--border-color);
         }
+        .page-btn {
+            background: #222; border: 1px solid #555; color: #fff;
+            padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1.2rem;
+        }
+        .page-btn:active { background: #444; }
 
         /* ファイル選択 */
-        .file-controls { display: flex; flex-direction: column; width: 100%; gap: 12px; align-items: center; }
+        .file-controls { display: flex; flex-direction: column; width: 100%; gap: 10px; align-items: center; padding-top: 10px; }
         input[type="file"] { display: none; }
         .custom-file-upload {
             width: 90%; text-align: center; padding: 10px 0; border: 1px solid #555;
-            border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: 0.3s;
+            border-radius: 8px; cursor: pointer; font-size: 0.8rem; transition: 0.3s;
         }
-        .custom-file-upload:hover { background: #333; }
 
-        main { flex: 1; position: relative; background: #000; }
-        iframe { width: 100%; height: 100%; border: none; }
-        #placeholder-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #444; }
+        /* メインエリア */
+        main { flex: 1; background: #000; display: flex; align-items: flex-start; justify-content: flex-start; }
+        #pdf-viewer { width: 100%; height: 100%; border: none; }
+        #placeholder-text { position: absolute; top: 50%; left: 60%; transform: translate(-50%, -50%); color: #444; }
     </style>
 </head>
 <body>
@@ -106,10 +109,15 @@
             <div class="audio-section">
                 <audio id="audio-player" style="display:none;"></audio>
                 <div class="audio-top-row">
-                    <button id="play-btn">PLAY</button>
+                    <button id="play-btn">▶</button>
                     <div id="time-display">0:00 / 0:00</div>
                 </div>
                 <input type="range" id="seek-slider" value="0" step="0.1">
+            </div>
+
+            <div class="page-controls">
+                <button class="page-btn" id="prev-page">＜</button>
+                <button class="page-btn" id="next-page">＞</button>
             </div>
 
             <div class="file-controls">
@@ -143,7 +151,6 @@
             document.getElementById('digital-clock').textContent = now.toTimeString().split(' ')[0];
             drawAnalogClock(now);
         }
-
         function drawAnalogClock(now) {
             const canvas = document.getElementById('analog-clock');
             const ctx = canvas.getContext('2d');
@@ -157,53 +164,48 @@
             drawHand(ctx, (now.getMinutes() + now.getSeconds()/60) * 6, radius * 0.8, 5, '#fff');
             drawHand(ctx, now.getSeconds() * 6, radius * 0.9, 2, '#ff3b30');
         }
-
         function drawHand(ctx, deg, length, width, color) {
             ctx.save(); ctx.rotate(deg * Math.PI / 180); ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(0, -length);
             ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore();
         }
         setInterval(updateClocks, 1000); updateClocks();
 
-        // --- オーディオ制御 ---
+        // オーディオ
         const player = document.getElementById('audio-player');
         const playBtn = document.getElementById('play-btn');
         const seekSlider = document.getElementById('seek-slider');
         const timeDisplay = document.getElementById('time-display');
 
         playBtn.addEventListener('click', () => {
-            if (player.paused) { player.play(); playBtn.textContent = 'PAUSE'; }
-            else { player.pause(); playBtn.textContent = 'PLAY'; }
+            if (player.paused) { player.play(); playBtn.textContent = 'Ⅱ'; }
+            else { player.pause(); playBtn.textContent = '▶'; }
         });
-
         player.addEventListener('timeupdate', () => {
-            const current = formatTime(player.currentTime);
-            const total = formatTime(player.duration || 0);
-            timeDisplay.textContent = `${current} / ${total}`;
+            timeDisplay.textContent = `${formatTime(player.currentTime)} / ${formatTime(player.duration || 0)}`;
             seekSlider.value = (player.currentTime / player.duration) * 100 || 0;
         });
+        seekSlider.addEventListener('input', () => { player.currentTime = (seekSlider.value / 100) * player.duration; });
+        function formatTime(s) { return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`; }
 
-        seekSlider.addEventListener('input', () => {
-            player.currentTime = (seekSlider.value / 100) * player.duration;
+        // PDFページ送り (iFrame内の標準機能に依存)
+        document.getElementById('next-page').addEventListener('click', () => {
+            const viewer = document.getElementById('pdf-viewer');
+            viewer.contentWindow.postMessage({ type: 'keydown', keyCode: 34 }, '*'); // PageDown模擬
         });
-
-        function formatTime(seconds) {
-            const min = Math.floor(seconds / 60);
-            const sec = Math.floor(seconds % 60);
-            return `${min}:${sec.toString().padStart(2, '0')}`;
-        }
+        document.getElementById('prev-page').addEventListener('click', () => {
+            const viewer = document.getElementById('pdf-viewer');
+            viewer.contentWindow.postMessage({ type: 'keydown', keyCode: 33 }, '*'); // PageUp模擬
+        });
 
         // ファイル処理
         document.getElementById('pdf-input').addEventListener('change', (e) => {
             if (e.target.files[0]) {
-                document.getElementById('pdf-viewer').src = URL.createObjectURL(e.target.files[0]);
+                document.getElementById('pdf-viewer').src = URL.createObjectURL(e.target.files[0]) + "#toolbar=0&navpanes=0&scrollbar=0";
                 document.getElementById('placeholder-text').style.display = 'none';
             }
         });
         document.getElementById('audio-input').addEventListener('change', (e) => {
-            if (e.target.files[0]) {
-                player.src = URL.createObjectURL(e.target.files[0]);
-                playBtn.textContent = 'PLAY';
-            }
+            if (e.target.files[0]) { player.src = URL.createObjectURL(e.target.files[0]); playBtn.textContent = '▶'; }
         });
     </script>
 </body>
