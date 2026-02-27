@@ -2,9 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kei.works ViewTune v4.6</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Kei.works ViewTune v5.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
     <style>
         :root {
             --bg: #000;
@@ -13,124 +14,184 @@
             --accent: #ff3b30;
             --brd: #333;
         }
+        body { margin: 0; background: var(--bg); color: var(--txt); font-family: 'Montserrat', sans-serif; overflow: hidden; }
 
-        body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            background-color: var(--bg); color: var(--txt);
-            font-family: sans-serif; overflow: hidden;
-        }
-
-        /* 起動画面 */
+        /* --- 起動画面 --- */
         #splash {
-            position: fixed; inset: 0; background: #000;
+            position: fixed; inset: 0; background: #000; z-index: 2000;
             display: flex; justify-content: center; align-items: center;
-            z-index: 9999; transition: opacity 0.5s;
+            transition: opacity 1s ease-out; pointer-events: none;
         }
-        .splash-logo { font-family: 'Montserrat', sans-serif; font-size: 2rem; letter-spacing: 0.3rem; }
+        .splash-logo { font-size: 26px; font-weight: 100; letter-spacing: 12px; animation: pulse 2.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
 
-        .main-wrapper { display: flex; width: 100vw; height: 100vh; }
+        .wrapper { display: flex; width: 100vw; height: 100vh; }
 
-        /* サイドバー 150px */
+        /* --- サイドバー 150px --- */
         aside {
-            width: 150px; min-width: 150px; background-color: var(--side);
-            border-right: 1px solid var(--brd);
-            display: flex; flex-direction: column; align-items: center;
-            padding: 15px 5px; box-sizing: border-box; overflow-y: auto;
+            width: 150px; min-width: 150px; background: var(--side);
+            border-right: 1px solid var(--brd); display: flex; flex-direction: column;
+            align-items: center; padding: 15px 8px; box-sizing: border-box; overflow-y: auto;
         }
-
-        .separator { width: 90%; border-bottom: 1px solid var(--brd); margin: 10px 0; }
+        .sep { width: 100%; border-bottom: 1px solid var(--brd); margin: 12px 0; }
+        .logo-s { font-size: 10px; font-weight: 600; color: #555; letter-spacing: 2px; margin-bottom: 10px; }
 
         /* 時計 */
-        #analog-clock { width: 110px; height: 110px; }
-        #digital-clock { font-size: 1rem; font-family: monospace; margin: 5px 0; }
+        #clock-cvs { width: 110px; height: 110px; }
+        #digital-clock { font-size: 1.1rem; font-family: monospace; font-variant-numeric: tabular-nums; margin-top: 5px; }
 
-        /* PDF操作：昨日のボタン配置 */
-        .pdf-controls { width: 100%; display: flex; flex-direction: column; gap: 8px; align-items: center; }
-        .page-btns { display: flex; gap: 5px; width: 95%; }
-        .p-btn {
-            background: #222; border: 1px solid #555; color: #fff;
-            padding: 12px 0; border-radius: 4px; cursor: pointer; font-size: 1.3rem; flex: 1;
+        /* ボタン・コントロール */
+        .btn-box { display: flex; gap: 5px; width: 100%; margin: 8px 0; }
+        .side-btn { 
+            background: #ddd; color: #000; border: none; border-radius: 4px; 
+            padding: 12px 0; cursor: pointer; font-size: 1.2rem; font-weight: 700; flex: 1; 
         }
+        .file-btn { 
+            width: 100%; background: #222; border: 1px solid #444; color: #ddd; 
+            padding: 8px 0; border-radius: 4px; font-size: 11px; cursor: pointer; text-align: center;
+        }
+        .file-info { font-size: 9px; color: #888; margin-top: 4px; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        #page-num { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+        .slider { width: 100%; height: 25px; accent-color: var(--accent); cursor: pointer; }
 
         /* プレイヤー */
-        .audio-ui { width: 95%; display: flex; flex-direction: column; gap: 5px; }
-        #play-btn { background: none; border: 1px solid #fff; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
-        #seek-slider { width: 100%; accent-color: var(--accent); margin: 0; }
-        #time-display { font-size: 0.6rem; opacity: 0.8; }
+        .play-row { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 5px; }
+        #p-b { width: 34px; height: 34px; border-radius: 50%; background: #ddd; color: #000; border: none; font-size: 14px; cursor: pointer; }
 
-        input[type="file"] { display: none; }
-        .upload-btn {
-            width: 95%; text-align: center; padding: 10px 0; border: 1px solid #555;
-            border-radius: 6px; cursor: pointer; font-size: 0.75rem; background: #1a1a1a;
-        }
-
-        /* メイン：昨日のシンプルな表示形式 */
-        main { flex: 1; background: #000; position: relative; }
-        #pdf-viewer { width: 100%; height: 100%; border: none; background: #000; }
-        #placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #444; pointer-events: none; }
+        /* --- メインコンテンツ --- */
+        main { flex: 1; position: relative; overflow: auto; background: #111; display: flex; justify-content: center; align-items: flex-start; }
+        #pdf-canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="splash"><div class="splash-logo">Kei.works</div></div>
+<div id="splash"><div class="splash-logo">Kei.works</div></div>
 
-    <div class="main-wrapper">
-        <aside>
-            <div style="font-size: 0.5rem; opacity: 0.5; margin-bottom: 5px;">Kei.works</div>
-            <canvas id="analog-clock"></canvas>
-            <div id="digital-clock">00:00:00</div>
-            
-            <div class="separator"></div>
-            
-            <div class="pdf-controls">
-                <label class="upload-btn">PDFを選択<input type="file" id="pdf-input" accept="application/pdf"></label>
-                <div class="page-btns">
-                    <button class="p-btn" id="prev-page">＜</button>
-                    <button class="p-btn" id="next-page">＞</button>
-                </div>
-            </div>
+<div class="wrapper">
+    <aside>
+        <div class="logo-s">Kei.works</div>
+        
+        <canvas id="clock-cvs"></canvas>
+        <div id="digital-clock">00:00:00</div>
+        
+        <div class="sep"></div>
+        
+        <label class="file-btn">PDF選択<input type="file" id="f-p" accept="application/pdf" style="display:none"></label>
+        <div id="pdf-name" class="file-info">PDF未選択</div>
+        <div class="btn-box">
+            <button id="b-p" class="side-btn">←</button>
+            <button id="n-pg" class="side-btn">→</button>
+        </div>
+        <div id="page-num">0 / 0</div>
+        <input type="range" id="z-s" class="slider" min="50" max="300" value="100">
+        <div style="font-size: 9px; color: #555;">ZOOM</div>
 
-            <div class="separator"></div>
+        <div class="sep"></div>
 
-            <div class="audio-ui">
-                <label class="upload-btn">音源を選択<input type="file" id="audio-input" accept="audio/*"></label>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                    <button id="play-btn">▶</button>
-                    <div id="time-display">0:00/0:00</div>
-                </div>
-                <input type="range" id="seek-slider" value="0">
-            </div>
-        </aside>
+        <label class="file-btn">曲選択<input type="file" id="f-a" accept="audio/*" style="display:none"></label>
+        <div id="audio-name" class="file-info">曲未選択</div>
+        <div class="play-row">
+            <button id="p-b">▶</button>
+            <div id="time-text" style="font-size: 10px; color: #888;">0:00</div>
+        </div>
+        <input type="range" id="s-b" class="slider" min="0" max="100" value="0">
+    </aside>
 
-        <main>
-            <iframe id="pdf-viewer" src=""></iframe>
-            <div id="placeholder">PDFを選択してください</div>
-        </main>
-    </div>
+    <main id="pdf-container">
+        <canvas id="pdf-canvas"></canvas>
+    </main>
+</div>
 
-    <script>
-        // 起動画面消去
-        window.addEventListener('load', () => {
-            const sp = document.getElementById('splash');
-            setTimeout(() => { sp.style.opacity = '0'; setTimeout(() => sp.style.display = 'none', 500); }, 1500);
-        });
+<script>
+(function(){
+    // 1. スプラッシュ
+    function hideSplash() {
+        const s = document.getElementById('splash');
+        if (s) { s.style.opacity = '0'; setTimeout(() => { s.style.display = 'none'; }, 1000); }
+    }
+    window.addEventListener('load', () => setTimeout(hideSplash, 2000));
 
-        // 時計（数字付き）
-        function drawClock() {
-            const now = new Date();
-            document.getElementById('digital-clock').textContent = now.toTimeString().split(' ')[0];
-            const canvas = document.getElementById('analog-clock');
-            const ctx = canvas.getContext('2d');
-            canvas.width = 220; canvas.height = 220;
-            ctx.clearRect(0,0,220,220); ctx.translate(110,110);
-            ctx.beginPath(); ctx.arc(0,0,100,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
-            // 数字
-            ctx.fillStyle='#fff'; ctx.font='bold 18px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
-            ctx.fillText('12',0,-75); ctx.fillText('3',75,0); ctx.fillText('6',0,75); ctx.fillText('9',-75,0);
-            // 針
-            const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-            const ha = (h%12+m/60)*30, ma = (m+s/60)*6, sa = s*6;
-            drawHand(ctx, ha, 50, 6, '#fff'); drawHand(ctx, ma, 75, 4, '#fff'); drawHand(ctx, sa, 85, 2, '#ff3b30');
+    // 2. アナログ時計（数字付き）
+    function updateClock(){
+        const now = new Date();
+        const d = document.getElementById('digital-clock');
+        d.textContent = now.toTimeString().split(' ')[0];
+        
+        const canvas = document.getElementById('clock-cvs');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 220; canvas.height = 220;
+        ctx.clearRect(0,0,220,220); ctx.translate(110,110);
+        
+        ctx.beginPath(); ctx.arc(0,0,100,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
+        ctx.fillStyle='#fff'; ctx.font='bold 18px Montserrat'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('12',0,-75); ctx.fillText('3',75,0); ctx.fillText('6',0,75); ctx.fillText('9',-75,0);
+        
+        const h=(now.getHours()%12+now.getMinutes()/60)*30, m=(now.getMinutes()+now.getSeconds()/60)*6, s=now.getSeconds()*6;
+        drawHand(ctx, h, 50, 6, '#fff'); drawHand(ctx, m, 75, 4, '#fff'); drawHand(ctx, s, 85, 2, '#ff3b30');
+    }
+    function drawHand(ctx, deg, len, w, col) {
+        ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(0,-len);
+        ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore();
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // 3. PDF設定 (ご提示のロジックそのまま)
+    const pdfjsLib=window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+    
+    let doc=null, pn=1, sc=1.0, rent=false;
+    const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d');
+
+    async function render(){
+        if(!doc || rent) return;
+        rent=true;
+        try {
+            const pg=await doc.getPage(pn);
+            const dpr=window.devicePixelRatio||1;
+            const vp=pg.getViewport({scale:sc*dpr});
+            cvs.width=vp.width; cvs.height=vp.height;
+            cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
+            await pg.render({canvasContext:ctx, viewport:vp}).promise;
+        } catch(e) { console.error(e); }
+        rent=false;
+        document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
+    }
+
+    document.getElementById('f-p').onchange=(e)=>{
+        const f=e.target.files[0]; if(!f) return;
+        document.getElementById('pdf-name').textContent = f.name;
+        const r=new FileReader(); r.onload=async function(){
+            const d=new Uint8Array(this.result);
+            doc=await pdfjsLib.getDocument({data:d}).promise; pn=1; render();
+        }; r.readAsArrayBuffer(f);
+    };
+
+    document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
+    document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
+    document.getElementById('z-s').oninput=(e)=>{sc=e.target.value/100;render()};
+
+    // 4. オーディオ (ご提示のロジックそのまま)
+    const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a'), sb=document.getElementById('s-b');
+    fa.onchange=(e)=>{
+        const f=e.target.files[0]; if(!f) return;
+        document.getElementById('audio-name').textContent = f.name;
+        au.src=URL.createObjectURL(f); au.load();
+    };
+    pb.onclick=()=>{
+        if(!au.src) return;
+        if(au.paused){ au.play().catch(()=>{}); pb.textContent="||"; }
+        else { au.pause(); pb.textContent="▶"; }
+    };
+    au.ontimeupdate=()=>{ 
+        if(au.duration) {
+            sb.value=(au.currentTime/au.duration)*100;
+            const c=Math.floor(au.currentTime);
+            document.getElementById('time-text').textContent = Math.floor(c/60)+":"+(c%60).toString().padStart(2,'0');
         }
-        function drawHand(ctx, deg, len, w, col) {
-            ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(0,-len);
+    };
+    sb.oninput=(e)=>{ if(au.duration) au.currentTime=(e.target.value/100)*au.duration; };
+})();
+</script>
+</body>
+</html>
