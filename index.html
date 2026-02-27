@@ -2,24 +2,31 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Kei.works ViewTune v5.3</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;400;600;700&display=swap" rel="stylesheet">
+<title>Kei.works ViewTune v5.5</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
 <style>
-/* --- 昨日のベース設定 --- */
-body{margin:0;background:#000;color:#fff;font-family:'Montserrat', sans-serif;overflow:hidden}
+/* --- 全体：標準フォント --- */
+body {
+  margin: 0; background: #000; color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
 
-/* --- 昨日の起動画面 --- */
+/* --- 起動画面：Montserrat --- */
 #splash {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: #000; z-index: 2000;
   display: flex; justify-content: center; align-items: center;
   transition: opacity 1s ease-out; pointer-events: none;
 }
-.splash-logo { font-size: 26px; font-weight: 100; letter-spacing: 12px; animation: pulse 2.5s infinite; }
+.splash-logo {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 26px; font-weight: 100; letter-spacing: 12px;
+  animation: pulse 2.5s infinite;
+}
 @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
 
-/* --- レイアウト --- */
 .main-wrapper { display: flex; width: 100vw; height: 100vh; }
 
 aside {
@@ -33,10 +40,10 @@ aside {
 .sep { width: 100%; border-bottom: 1px solid #333; margin: 12px 0; }
 
 /* 時計 */
-#clock-cvs { width: 110px; height: 110px; margin-bottom: 5px; }
+#clock-cvs { width: 115px; height: 115px; margin-bottom: 5px; }
 #digital-clock { font-size: 1.1rem; font-weight: 700; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
 
-/* ★ボタン：すべて30pxの丸に統一 */
+/* ボタン：30pxの丸 */
 .round-btn {
   width: 30px; height: 30px; border-radius: 50%; 
   background: #ddd; color: #000; border: none; 
@@ -53,139 +60,4 @@ aside {
 }
 
 .info-label { font-size: 9px; color: #888; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px;}
-#page-num { font-size: 13px; font-weight: 700; margin: 5px 0; }
-.slider { width: 100%; height: 25px; accent-color: #fff; cursor: pointer; }
-
-/* プレイヤー行 */
-.play-row { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 5px; }
-
-/* メインエリア */
-#pdf-container { flex: 1; overflow: auto; background: #111; display: flex; justify-content: flex-start; align-items: flex-start; }
-#pdf-canvas { display: block; }
-
-.c-text { font-size: 9px; font-weight: 600; color: #444; margin-top: auto; padding-top: 15px;}
-</style>
-</head>
-<body>
-
-<div id="splash"><div class="splash-logo">Kei.works</div></div>
-
-<div class="main-wrapper">
-  <aside>
-    <canvas id="clock-cvs"></canvas>
-    <div id="digital-clock">00:00</div>
-    
-    <div class="sep"></div>
-    
-    <label for="f-p" class="file-select-btn">PDF選択</label>
-    <input type="file" id="f-p" accept="application/pdf" style="display:none">
-    <div id="pdf-name" class="info-label">PDF未選択</div>
-    
-    <div class="btn-row">
-      <button id="b-p" class="round-btn">←</button>
-      <button id="n-pg" class="round-btn">→</button>
-    </div>
-    <div id="page-num">0 / 0</div>
-    <input type="range" id="z-s" class="slider" min="50" max="300" value="100">
-    <div style="font-size: 9px; color: #555;">ZOOM</div>
-
-    <div class="sep"></div>
-
-    <label for="f-a" class="file-select-btn">曲選択</label>
-    <input type="file" id="f-a" accept="audio/*" style="display:none">
-    <div id="audio-name" class="info-label">曲未選択</div>
-    
-    <div class="play-row">
-      <button id="p-b" class="round-btn">▶</button>
-      <div id="time-text" style="font-size: 11px; font-weight:600;">0:00</div>
-    </div>
-    <input type="range" id="s-b" class="slider" min="0" max="100" value="0">
-
-    <div class="c-text">©Kei.works</div>
-  </aside>
-
-  <main id="pdf-container">
-    <canvas id="pdf-canvas"></canvas>
-  </main>
-</div>
-
-<script>
-(function(){
-  // --- 昨日のスプラッシュ ---
-  function hideSplash() {
-    const s = document.getElementById('splash');
-    if (s) { s.style.opacity = '0'; setTimeout(() => { s.style.display = 'none'; }, 1000); }
-  }
-  window.addEventListener('load', () => setTimeout(hideSplash, 2000));
-  setTimeout(hideSplash, 2500);
-
-  // --- 数字付き時計 ---
-  function updateClock(){
-    const d=new Date();
-    document.getElementById('digital-clock').textContent = String(d.getHours()).padStart(2,'0')+":"+String(d.getMinutes()).padStart(2,'0');
-    const canvas = document.getElementById('clock-cvs');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 220; canvas.height = 220;
-    ctx.clearRect(0,0,220,220); ctx.translate(110,110);
-    ctx.beginPath(); ctx.arc(0,0,100,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.font='bold 20px Montserrat'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('12',0,-75); ctx.fillText('3',75,0); ctx.fillText('6',0,75); ctx.fillText('9',-75,0);
-    const h=(d.getHours()%12+d.getMinutes()/60)*30, m=(d.getMinutes()+d.getSeconds()/60)*6, s=d.getSeconds()*6;
-    drawHand(ctx, h, 50, 6, '#fff'); drawHand(ctx, m, 75, 4, '#fff'); drawHand(ctx, s, 85, 2, '#ff3b30');
-  }
-  function drawHand(ctx, deg, len, w, col) {
-    ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,10); ctx.lineTo(0,-len);
-    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore();
-  }
-  setInterval(updateClock, 1000); updateClock();
-
-  // --- 昨日のPDFロジック ---
-  const pdfjsLib=window['pdfjs-dist/build/pdf'];
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
-  let doc=null, pn=1, sc=1.0, rent=false;
-  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d');
-
-  async function render(){
-    if(!doc || rent) return;
-    rent=true;
-    try {
-      const pg=await doc.getPage(pn);
-      const dpr=window.devicePixelRatio||1;
-      const vp=pg.getViewport({scale:sc*dpr});
-      cvs.width=vp.width; cvs.height=vp.height;
-      cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
-      await pg.render({canvasContext:ctx, viewport:vp}).promise;
-    } catch(e) { console.error(e); }
-    rent=false;
-    document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
-  }
-
-  document.getElementById('f-p').onchange=(e)=>{
-    const f=e.target.files[0]; if(!f) return;
-    document.getElementById('pdf-name').textContent = f.name;
-    const r=new FileReader(); r.onload=async function(){
-      const d=new Uint8Array(this.result);
-      doc=await pdfjsLib.getDocument({data:d}).promise; pn=1; render();
-    }; r.readAsArrayBuffer(f);
-  };
-
-  document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
-  document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
-  document.getElementById('z-s').oninput=(e)=>{sc=e.target.value/100;render()};
-
-  // --- 昨日のプレイヤーロジック ---
-  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a'), sb=document.getElementById('s-b');
-  fa.onchange=(e)=>{
-    const f=e.target.files[0]; if(!f) return;
-    document.getElementById('audio-name').textContent = f.name;
-    au.src=URL.createObjectURL(f); au.load();
-  };
-  pb.onclick=()=>{
-    if(!au.src) return;
-    if(au.paused){ au.play().catch(()=>{}); pb.textContent="||"; }
-    else { au.pause(); pb.textContent="▶"; }
-  };
-  au.ontimeupdate=()=>{ 
-    if(au.duration) {
-      sb.value=(au.currentTime/au.duration)*100;
-      const
+#page-num { font-size: 13px;
