@@ -8,7 +8,7 @@
 <style>
 body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
 
-#splash { 
+#splash {
   position: fixed; inset: 0; background: #000; z-index: 9999; 
   display: flex; justify-content: center; align-items: center; 
   transition: opacity 0.8s ease-in-out; pointer-events: none; opacity: 1;
@@ -16,42 +16,82 @@ body { margin: 0; background: #000; color: #fff; font-family: -apple-system, san
 .splash-logo { font-family: 'Montserrat', sans-serif; font-size: 26px; font-weight: 100; letter-spacing: 12px; animation: pulse 2s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
-.main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; } 
+.main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; position: relative; } 
 
-/* 変更点1: サイドバーの幅を2倍 (150px → 300px) */
-aside { width: 300px; min-width: 300px; height: 100vh; background: #111; border-right: 1px solid #333; display: flex; flex-direction: column; align-items: center; padding: 15px 10px; box-sizing: border-box; overflow-y: auto; z-index: 100; -webkit-overflow-scrolling: touch; }
+aside { 
+  width: 300px; min-width: 150px; max-width: 80vw; height: 100vh; 
+  background: #111; border-right: 1px solid #333; 
+  display: flex; flex-direction: column; align-items: center; 
+  padding: 15px 10px; box-sizing: border-box; 
+  overflow-y: auto; z-index: 100; -webkit-overflow-scrolling: touch;
+  transition: transform 0.3s ease, margin-left 0.3s ease;
+}
+aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
-.sep { width: 100%; border-bottom: 1px solid #555; margin: 12px 0; }
+#toggle-btn {
+  position: fixed; top: 50%; left: 300px;
+  transform: translateY(-50%); z-index: 200;
+  width: 16px; height: 80px; 
+  background: #222; border: 1px solid #444; border-left: none;
+  border-radius: 0 8px 8px 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: left 0.3s ease, background 0.2s;
+}
+#toggle-btn::after { content: ""; width: 2px; height: 20px; background: #fff; border-radius: 2px; }
+#toggle-btn.is-hidden { left: 0 !important; }
 
-/* 変更点2: 時計をサイドバー幅に合わせて大きく (120px → 240px) */
-#clock-cvs { width: 240px; height: 240px; }
-#digital-clock { font-size: 1.6rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; }
+#fs-btn {
+  position: absolute; top: 15px; right: 15px; z-index: 150;
+  width: 36px; height: 36px; background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  border-radius: 6px; cursor: pointer; backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center;
+}
 
-.round-btn { width: 30px; height: 30px; border-radius: 50%; background: #ddd; color: #000; border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#resizer { width: 14px; cursor: col-resize; background: transparent; z-index: 101; margin-left: -7px; }
+
+.sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; }
+
+#clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; }
+#digital-clock { font-size: 2.2rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; }
+
+.round-btn { 
+  width: 42px; height: 42px; border-radius: 50%; 
+  background: #ddd; color: #000; border: none; 
+  font-size: 18px; font-weight: 700; cursor: pointer; 
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; 
+}
 .btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 8px 0; }
-.file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 100%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin-bottom: 5px; display: block; }
-.info-label { font-size: 9px; color: #888; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-#page-num { font-size: 10px; color: #777; min-width: 45px; text-align: center; }
+.file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 85%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin: 0 auto 5px; display: block; }
+.info-label { font-size: 12px; color: #fff; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; }
 
-.mode-switch { width: 100%; display: flex; background: #333; border-radius: 15px; margin-top: 5px; padding: 2px; }
-.mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 5px 0; cursor: pointer; border-radius: 13px; }
+#page-num { font-size: 14px; color: #fff; min-width: 50px; text-align: center; flex-shrink: 0; font-weight: 600; }
+
+.mode-switch { width: 85%; display: flex; background: #333; border-radius: 15px; margin: 5px auto 0; padding: 2px; }
+.mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 6px 0; cursor: pointer; border-radius: 13px; }
 .mode-btn.active { background: #fff; color: #000; }
 
-#pdf-container { flex: 1; overflow: hidden; background: #111; position: relative; }
-#pdf-canvas { position: absolute; top: 0; left: 0; display: block; transform-origin: 0 0; transition: transform 0.05s linear; will-change: transform; }
-.c-text { font-size: 9px; color: #444; margin-top: auto; padding-top: 15px; }
+#pdf-container { 
+  flex: 1; overflow: auto; background: #111; position: relative;
+  display: flex; justify-content: center; align-items: flex-start; 
+}
+#pdf-canvas { display: block; transform-origin: top center; flex-shrink: 0; }
+
+.c-text { font-size: 9px; color: #444; margin-top: auto; padding-top: 15px; text-align: center; width: 100%; }
 
 .audio-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 5px; }
-#time-text { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#time-text { font-size: 13px; color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
 </head>
 <body>
 
 <div id="splash"><div class="splash-logo">Kei.works</div></div>
+<button id="toggle-btn"></button>
 
 <div class="main-wrapper" id="main-content">
-  <aside>
+  <aside id="sidebar">
     <canvas id="clock-cvs"></canvas>
     <div id="digital-clock">00:00:00</div>
     <div class="sep"></div>
@@ -63,12 +103,10 @@ aside { width: 300px; min-width: 300px; height: 100vh; background: #111; border-
       <div id="page-num">0 / 0</div>
       <button id="n-pg" class="round-btn">→</button>
     </div>
-    
     <div class="mode-switch">
-      <button id="m-fix" class="mode-btn active">FIX</button>
-      <button id="m-free" class="mode-btn">FREE</button>
+      <button id="m-free" class="mode-btn active">FREE</button>
+      <button id="m-fix" class="mode-btn">FIX</button>
     </div>
-
     <div class="sep"></div>
     <label for="f-a" class="file-select-btn">曲選択</label>
     <input type="file" id="f-a" accept="audio/*" style="display:none">
@@ -77,63 +115,90 @@ aside { width: 300px; min-width: 300px; height: 100vh; background: #111; border-
       <button id="p-b" class="round-btn">▶</button>
       <div id="time-text">0:00/0:00</div>
     </div>
-    
     <div class="sep"></div>
     <div class="c-text">©Kei.works</div>
   </aside>
-  <main id="pdf-container"><canvas id="pdf-canvas"></canvas></main>
+
+  <div id="resizer"></div>
+  <main id="pdf-container">
+    <button id="fs-btn" title="全画面モード">⛶</button>
+    <canvas id="pdf-canvas"></canvas>
+  </main>
 </div>
 
 <script>
 (function(){
-  const splash = document.getElementById('splash');
-  const main = document.getElementById('main-content');
+  const splash = document.getElementById('splash'), main = document.getElementById('main-content');
   let unlocked = false;
   function unlock() { if(!unlocked){ unlocked=true; splash.style.opacity='0'; main.style.visibility='visible'; setTimeout(()=>splash.style.display='none', 1000); } }
   window.addEventListener('load', () => setTimeout(unlock, 1500));
   setTimeout(unlock, 3000);
 
+  const sidebar = document.getElementById('sidebar'), resizer = document.getElementById('resizer'), toggleBtn = document.getElementById('toggle-btn');
+  const fsBtn = document.getElementById('fs-btn');
+  let isResizing = false, currentWidth = 300;
+
+  fsBtn.onclick = () => {
+    if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
+    else { if (document.exitFullscreen) document.exitFullscreen(); }
+  };
+  document.addEventListener('fullscreenchange', () => { fsBtn.textContent = document.fullscreenElement ? "✖" : "⛶"; });
+
+  toggleBtn.onclick = () => {
+    sidebar.classList.toggle('hidden'); resizer.classList.toggle('hidden'); toggleBtn.classList.toggle('is-hidden');
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    if(sidebar.classList.contains('hidden')) { sidebar.style.marginLeft = `-${currentWidth}px`; } 
+    else { sidebar.style.marginLeft = "0"; }
+  };
+
+  resizer.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; });
+  resizer.addEventListener('touchstart', () => { isResizing = true; });
+
+  const doResize = (clientX) => {
+    if (!isResizing || sidebar.classList.contains('hidden')) return;
+    let newWidth = clientX;
+    if (newWidth >= 150 && newWidth < window.innerWidth * 0.8) {
+      currentWidth = newWidth;
+      sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
+      sidebar.style.width = newWidth + 'px'; sidebar.style.minWidth = newWidth + 'px';
+      sidebar.style.marginLeft = "0"; toggleBtn.style.left = newWidth + 'px';
+    }
+  };
+
+  window.addEventListener('mousemove', (e) => doResize(e.clientX));
+  window.addEventListener('touchmove', (e) => doResize(e.touches[0].clientX), { passive: false });
+
+  const endResize = () => { 
+    isResizing = false; document.body.style.cursor = 'default';
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+  };
+  window.addEventListener('mouseup', endResize); window.addEventListener('touchend', endResize);
+
   function updateClock(){
     try {
       const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
       const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
-      // 描画解像度を上げて綺麗に表示
-      canvas.width=480; canvas.height=480; ctx.translate(240,240);
-      
-      // 外枠
-      ctx.beginPath(); ctx.arc(0,0,220,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=6; ctx.stroke();
-      
-      // 変更点3: 分の目盛りを追加
+      canvas.width=600; canvas.height=600; ctx.translate(300,300);
+      ctx.beginPath(); ctx.arc(0,0,280,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=6; ctx.stroke();
       for(let i=0; i<60; i++){
-        ctx.save();
-        ctx.rotate(i * 6 * Math.PI / 180);
-        ctx.beginPath();
-        if(i % 5 === 0){
-          ctx.moveTo(0, -220); ctx.lineTo(0, -195); ctx.lineWidth = 6;
-        } else {
-          ctx.moveTo(0, -220); ctx.lineTo(0, -210); ctx.lineWidth = 2;
-        }
-        ctx.strokeStyle = '#fff'; ctx.stroke();
-        ctx.restore();
+        ctx.save(); ctx.rotate(i*6*Math.PI/180); ctx.beginPath();
+        if(i%5===0){ ctx.moveTo(0,-280); ctx.lineTo(0,-250); ctx.lineWidth=6; }
+        else { ctx.moveTo(0,-280); ctx.lineTo(0,-265); ctx.lineWidth=2; }
+        ctx.strokeStyle='#fff'; ctx.stroke(); ctx.restore();
       }
-
-      // 1～12の数字
-      ctx.fillStyle='#fff'; ctx.font='bold 36px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      for(let i=1; i<=12; i++){ 
-        const a=(i*30-90)*(Math.PI/180); 
-        ctx.fillText(i, Math.cos(a)*165, Math.sin(a)*165); 
-      }
-      
+      ctx.fillStyle='#fff'; ctx.font='bold 44px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      for(let i=1; i<=12; i++){ const a=(i*30-90)*(Math.PI/180); ctx.fillText(i, Math.cos(a)*215, Math.sin(a)*215); }
       const h=(d.getHours()%12+d.getMinutes()/60)*30, m=(d.getMinutes()+d.getSeconds()/60)*6, s=d.getSeconds()*6;
-      drawHand(ctx,h,120,12,'#fff'); drawHand(ctx,m,170,8,'#fff'); drawHand(ctx,s,190,4,'#ff3b30');
+      drawHand(ctx,h,160,14,'#fff'); drawHand(ctx,m,230,10,'#fff'); drawHand(ctx,s,250,5,'#ff3b30');
     } catch(e){}
   }
-  function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,20); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
+  function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
 
-  let doc=null, pn=1, sc=1.0, rent=false, isFreeMode=false;
+  let doc=null, pn=1, sc=1.0, rent=false, isFreeMode=true;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
-
   async function render(){
     if(!doc || rent) return; rent=true;
     try {
@@ -141,12 +206,10 @@ aside { width: 300px; min-width: 300px; height: 100vh; background: #111; border-
       const vp=pg.getViewport({scale:sc*dpr});
       cvs.width=vp.width; cvs.height=vp.height;
       cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
-      cvs.style.transform = `scale(1)`;
       await pg.render({canvasContext:ctx, viewport:vp}).promise;
     } catch(e){}
     rent=false; document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
   }
-
   const btnFix = document.getElementById('m-fix'), btnFree = document.getElementById('m-free');
   btnFix.onclick = () => { isFreeMode=false; btnFix.classList.add('active'); btnFree.classList.remove('active'); container.style.overflow='hidden'; container.scrollLeft=0; container.scrollTop=0; };
   btnFree.onclick = () => { isFreeMode=true; btnFree.classList.add('active'); btnFix.classList.remove('active'); container.style.overflow='auto'; };
@@ -165,54 +228,35 @@ aside { width: 300px; min-width: 300px; height: 100vh; background: #111; border-
 
   let initialDist = null, initialScale = 1, isMoving = false, lastX, lastY, tempNewScale = 1.0;
   container.addEventListener('touchstart', (e) => {
-    if (e.touches.length === 2) {
-      initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-      initialScale = sc;
-    } else if (e.touches.length === 1 && isFreeMode) {
-      isMoving = true; lastX = e.touches[0].pageX; lastY = e.touches[0].pageY;
-    }
+    if (e.touches.length === 2) { initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); initialScale = sc; }
+    else if (e.touches.length === 1 && isFreeMode) { isMoving = true; lastX = e.touches[0].pageX; lastY = e.touches[0].pageY; }
   }, { passive: false });
-
   container.addEventListener('touchmove', (e) => {
     if (e.touches.length === 2 && initialDist !== null) {
-      e.preventDefault();
-      const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+      e.preventDefault(); const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
       tempNewScale = Math.min(Math.max(initialScale * (dist / initialDist), 0.5), 4.0);
       cvs.style.transform = `scale(${tempNewScale / sc})`;
     } else if (e.touches.length === 1 && isMoving && isFreeMode) {
-      container.scrollLeft += (lastX - e.touches[0].pageX);
-      container.scrollTop += (lastY - e.touches[0].pageY);
+      container.scrollLeft += (lastX - e.touches[0].pageX); container.scrollTop += (lastY - e.touches[0].pageY);
       lastX = e.touches[0].pageX; lastY = e.touches[0].pageY;
     }
   }, { passive: false });
-
-  container.addEventListener('touchend', (e) => {
-    if (initialDist !== null && e.touches.length < 2) {
-      sc = tempNewScale;
-      initialDist = null; render();
-    }
-    isMoving = false;
-  });
+  container.addEventListener('touchend', (e) => { if (initialDist !== null && e.touches.length < 2) { sc = tempNewScale; initialDist = null; render(); } isMoving = false; });
 
   document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
   document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
 
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
   const timeDisplay = document.getElementById('time-text');
-  
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
-  
+  // 曲終了時にボタンを戻す処理
+  au.onended = () => { pb.textContent = "▶"; };
   au.ontimeupdate=()=>{
-    const fmt = (t) => {
-      if(!t || isNaN(t)) return "0:00";
-      const m=Math.floor(t/60), s=Math.floor(t%60);
-      return m + ":" + s.toString().padStart(2,'0');
-    };
+    const fmt = (t) => { if(!t || isNaN(t)) return "0:00"; const m=Math.floor(t/60), s=Math.floor(t%60); return m + ":" + s.toString().padStart(2,'0'); };
     timeDisplay.textContent = fmt(au.currentTime) + "/" + fmt(au.duration);
   };
 })();
 </script>
 </body>
 </html>
-
