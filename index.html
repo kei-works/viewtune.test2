@@ -73,11 +73,24 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 .mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 6px 0; cursor: pointer; border-radius: 13px; }
 .mode-btn.active { background: #fff; color: #000; }
 
+/* ★PDFコンテナの設定を修正：子要素がはみ出してもスクロールを維持 */
 #pdf-container { 
-  flex: 1; overflow: auto; background: #111; position: relative;
-  display: flex; justify-content: center; align-items: flex-start; 
+  flex: 1; 
+  overflow: auto; /* はみ出したらスクロール */
+  background: #111; 
+  position: relative;
+  display: flex; 
+  justify-content: center; 
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch; /* iOSでのスクロールを滑らかに */
 }
-#pdf-canvas { display: block; transform-origin: top center; flex-shrink: 0; }
+
+/* ★キャンバスが勝手に縮まないように設定 */
+#pdf-canvas { 
+  display: block; 
+  transform-origin: top center; 
+  flex-shrink: 0; 
+}
 
 .c-text { font-size: 9px; color: #444; margin-top: auto; padding-top: 15px; text-align: center; width: 100%; }
 
@@ -250,7 +263,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const timeDisplay = document.getElementById('time-text');
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
-  // 曲終了時にボタンを戻す処理
   au.onended = () => { pb.textContent = "▶"; };
   au.ontimeupdate=()=>{
     const fmt = (t) => { if(!t || isNaN(t)) return "0:00"; const m=Math.floor(t/60), s=Math.floor(t%60); return m + ":" + s.toString().padStart(2,'0'); };
