@@ -6,8 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
-/* ブラウザ標準の挙動を徹底的に抑制 */
-* { touch-action: pan-x pan-y; }
+* { touch-action: none; } /* ブラウザのデフォルト挙動を完全に制御 */
 body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; -webkit-text-size-adjust: none; }
 
 #splash {
@@ -52,9 +51,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 }
 
 #resizer { width: 14px; cursor: col-resize; background: transparent; z-index: 101; margin-left: -7px; flex-shrink: 0; }
-
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
-
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
 #digital-clock { font-size: 2.2rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
 
@@ -62,26 +59,21 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   width: 42px; height: 42px; border-radius: 50%; 
   background: #ddd; color: #000; border: none; 
   font-size: 18px; font-weight: 700; cursor: pointer; 
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; 
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
 }
 .btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 8px 0; flex-shrink: 0; }
 
 .file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 85%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin: 0 auto 5px; display: block; flex-shrink: 0; }
-
 .info-label { font-size: 12px; color: #fff; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; flex-shrink: 0; }
-
 #page-num { font-size: 14px; color: #fff; min-width: 50px; text-align: center; flex-shrink: 0; font-weight: 600; }
 
 .mode-switch { width: 85%; display: flex; background: #333; border-radius: 15px; margin: 5px auto 0; padding: 2px; flex-shrink: 0; }
 .mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 6px 0; cursor: pointer; border-radius: 13px; }
 .mode-btn.active { background: #fff; color: #000; }
-
 .c-text { font-size: 9px; color: #444; margin: 20px 0 10px; text-align: center; width: 100%; flex-shrink: 0; }
 
-/* PDFエリアはスクロールをコードで制御するため touch-actionをnoneにする */
-#pdf-container { flex: 1; overflow: auto; background: #111; position: relative; touch-action: none; }
-#pdf-canvas { position: absolute; top: 0; left: 0; display: block; transform-origin: 0 0; pointer-events: none; }
+#pdf-container { flex: 1; overflow: auto; background: #111; position: relative; }
+#pdf-canvas { position: absolute; top: 0; left: 0; display: block; transform-origin: 0 0; }
 
 .audio-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 5px; flex-shrink: 0; }
 #time-text { font-size: 12px; color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -136,9 +128,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('load', () => setTimeout(unlock, 1500));
   setTimeout(unlock, 3000);
 
-  // ブラウザの標準ズームを無効化（iOS/Android用）
+  // iOSのデフォルトズームを阻止
   document.addEventListener('gesturestart', (e) => e.preventDefault());
-  document.addEventListener('gesturechange', (e) => e.preventDefault());
 
   const sidebar = document.getElementById('sidebar'), resizer = document.getElementById('resizer'), toggleBtn = document.getElementById('toggle-btn');
   const fsBtn = document.getElementById('fs-btn');
@@ -215,33 +206,35 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; render(); }; r.readAsArrayBuffer(f);
   };
 
-  /* --- ズームロジック強化版 --- */
-  let initialDist = 0, initialScale = 1, isPinching = false, isDragging = false, lastX, lastY, startX, startY;
+  /* --- ズーム軸補正ロジック --- */
+  let initialDist = 0, initialScale = 1, isPinching = false, isDragging = false, lastX, lastY;
 
   container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) {
       isPinching = true; isDragging = false;
       initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
       initialScale = sc;
-      startX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-      startY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
     } else if (e.touches.length === 1 && isFreeMode) {
       isDragging = true; lastX = e.touches[0].pageX; lastY = e.touches[0].pageY;
     }
   }, { passive: false });
 
   container.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // ブラウザ標準ズームを阻止
+    e.preventDefault();
     if (isPinching && e.touches.length === 2) {
       const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
       const newScale = Math.min(Math.max(initialScale * (dist / initialDist), 0.5), 4.0);
+      
       const ratio = newScale / sc;
       const rect = container.getBoundingClientRect();
-      const centerX = startX - rect.left;
-      const centerY = startY - rect.top;
+      // 指の間の中心をリアルタイムで再計算
+      const centerX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left;
+      const centerY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top;
       
+      // 中心を維持するようにスクロールを動かす
       container.scrollLeft = (container.scrollLeft + centerX) * ratio - centerX;
       container.scrollTop = (container.scrollTop + centerY) * ratio - centerY;
+      
       sc = newScale;
       cvs.style.transform = `scale(${sc})`;
     } else if (isDragging && e.touches.length === 1) {
@@ -266,7 +259,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const fmt = (t) => { if(!t || isNaN(t)) return "0:00"; const m=Math.floor(t/60), s=Math.floor(t%60); return m + ":" + s.toString().padStart(2,'0'); };
     document.getElementById('time-text').textContent = fmt(au.currentTime) + "/" + fmt(au.duration);
   };
-  au.onended=()=>{ pb.textContent="▶"; };
 })();
 </script>
 </body>
