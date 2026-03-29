@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Fix</title>
+<title>Kei.works ViewTune Handle-Fix</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -18,32 +18,29 @@ body { margin: 0; background: #000; color: #fff; font-family: -apple-system, san
 
 .main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; position: relative; background: #000; overflow: hidden; } 
 
-.main-wrapper:fullscreen { width: 100vw; height: 100vh; background: #000; }
-.main-wrapper:-webkit-full-screen { width: 100vw; height: 100vh; background: #000; }
-
 aside { 
   width: 300px; min-width: 150px; max-width: 80vw; height: 100vh; 
   background: #111; border-right: 1px solid #333; 
   display: flex; flex-direction: column; align-items: center; 
   padding: 15px 10px 30px; box-sizing: border-box;
-  overflow-y: auto; overflow-x: hidden; z-index: 1000; -webkit-overflow-scrolling: touch;
+  overflow-y: auto; overflow-x: hidden; z-index: 1000;
   transition: transform 0.3s ease, margin-left 0.3s ease;
   flex-shrink: 0;
 }
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
+/* 摘み（兼開閉ボタン）のスタイル */
 #toggle-btn {
   position: absolute; top: 20px; left: 300px;
-  transform: none; z-index: 9999;
-  width: 25px; height: 60px; 
+  z-index: 9999; width: 35px; height: 65px; 
   background: #222; border: 1px solid #444; border-left: none;
-  border-radius: 0 8px 8px 0; cursor: pointer;
+  border-radius: 0 8px 8px 0; cursor: grab;
   display: flex; align-items: center; justify-content: center;
   transition: left 0.3s ease, background 0.2s;
-  touch-action: auto;
+  touch-action: none; font-size: 18px; color: #fff;
 }
-#toggle-btn::after { content: ""; width: 2px; height: 20px; background: #fff; border-radius: 2px; }
-#toggle-btn.is-hidden { left: 0 !important; }
+#toggle-btn:active { cursor: grabbing; background: #333; }
+#toggle-btn.is-hidden { left: 0 !important; border-left: 1px solid #444; border-radius: 0 8px 8px 0; }
 
 #fs-btn {
   position: absolute; top: 15px; right: 15px; z-index: 150;
@@ -53,50 +50,21 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   display: flex; align-items: center; justify-content: center;
 }
 
-/* リサイズ領域の調整（幅20px） */
-#resizer { 
-  width: 20px; cursor: col-resize; background: transparent; z-index: 101; 
-  margin-left: -10px; flex-shrink: 0; 
-  display: flex; justify-content: center; align-items: center;
-}
-/* ハイライトの線（通常は透明、高さ全体、色は白） */
-#resizer::after {
-  content: ""; width: 2px; height: 100%; background: transparent; transition: background 0.1s;
-}
-/* ホバー時、およびリサイズ中（.resizingクラスが付与されたとき）に白くハイライト */
-#resizer:hover::after, #resizer.resizing::after {
-  background: #fff;
-}
-
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
-
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
 #digital-clock { font-size: 3.5rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
 
-.round-btn { 
-  width: 42px; height: 42px; border-radius: 50%; 
-  background: #ddd; color: #000; border: none; 
-  font-size: 18px; font-weight: 700; cursor: pointer; 
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; 
-}
+.round-btn { width: 42px; height: 42px; border-radius: 50%; background: #ddd; color: #000; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 8px 0; flex-shrink: 0; }
-
 .file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 85%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin: 0 auto 5px; display: block; flex-shrink: 0; }
-
 .info-label { font-size: 12px; color: #fff; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; flex-shrink: 0; }
-
 #page-num { font-size: 14px; color: #fff; min-width: 50px; text-align: center; flex-shrink: 0; font-weight: 600; }
-
 .mode-switch { width: 85%; display: flex; background: #333; border-radius: 15px; margin: 5px auto 0; padding: 2px; flex-shrink: 0; }
 .mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 6px 0; cursor: pointer; border-radius: 13px; }
 .mode-btn.active { background: #fff; color: #000; }
-
 .c-text { font-size: 9px; color: #444; margin: 20px 0 10px; text-align: center; width: 100%; flex-shrink: 0; }
-
 #pdf-container { flex: 1; overflow: hidden; background: #111; position: relative; touch-action: none; }
 #pdf-canvas { position: absolute; top: 0; left: 0; display: block; transform-origin: 0 0; will-change: transform; }
-
 .audio-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 5px; flex-shrink: 0; }
 #time-text { font-size: 12px; color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
@@ -106,7 +74,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 <div id="splash"><div class="splash-logo">Kei.works</div></div>
 
 <div class="main-wrapper" id="main-content">
-  <button id="toggle-btn"></button>
+  <button id="toggle-btn">→</button>
   
   <aside id="sidebar">
     <canvas id="clock-cvs"></canvas>
@@ -136,7 +104,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="c-text">©Kei.works</div>
   </aside>
 
-  <div id="resizer"></div>
   <main id="pdf-container">
     <button id="fs-btn" title="全画面モード">⛶</button>
     <canvas id="pdf-canvas"></canvas>
@@ -151,63 +118,113 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('load', () => setTimeout(unlock, 1500));
   setTimeout(unlock, 3000);
 
-  const sidebar = document.getElementById('sidebar'), resizer = document.getElementById('resizer'), toggleBtn = document.getElementById('toggle-btn');
-  const fsBtn = document.getElementById('fs-btn');
+  const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn');
   const digitalClock = document.getElementById('digital-clock');
-  let isResizing = false, currentWidth = 300;
+  let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
-  fsBtn.onclick = () => {
-    const target = main; 
-    if (target.requestFullscreen) {
-      if (!document.fullscreenElement) { target.requestFullscreen(); } 
-      else { document.exitFullscreen(); }
-    } else if (target.webkitRequestFullscreen) {
-      if (!document.webkitFullscreenElement) { target.webkitRequestFullscreen(); } 
-      else { document.webkitExitFullscreen(); }
+  // ボタンアイコンの更新関数
+  function updateBtnIcon() {
+    if (sidebar.classList.contains('hidden')) {
+      toggleBtn.textContent = "→";
+    } else if (isResizing) {
+      toggleBtn.textContent = "‖";
+    } else if (currentWidth <= 150) {
+      toggleBtn.textContent = "←";
+    } else {
+      toggleBtn.textContent = "←";
     }
-  };
-  const updateFsBtn = () => {
-    const isFS = document.fullscreenElement || document.webkitFullscreenElement;
-    fsBtn.textContent = isFS ? "✖" : "⛶";
-  };
-  document.addEventListener('fullscreenchange', updateFsBtn);
-  document.addEventListener('webkitfullscreenchange', updateFsBtn);
+  }
 
-  toggleBtn.onclick = (e) => {
-    e.stopPropagation();
-    sidebar.classList.toggle('hidden'); 
-    resizer.classList.toggle('hidden'); 
-    toggleBtn.classList.toggle('is-hidden');
-    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
-    if(sidebar.classList.contains('hidden')) { toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`; } 
-    else { toggleBtn.style.left = currentWidth + "px"; sidebar.style.marginLeft = "0"; }
-    setTimeout(keepInBounds, 310);
+  // リサイズロジック
+  const startDrag = (e) => {
+    isResizing = true;
+    moved = false;
+    startX = e.clientX || e.touches[0].clientX;
+    initialW = currentWidth;
+    toggleBtn.style.transition = 'none';
+    sidebar.style.transition = 'none';
+    updateBtnIcon();
   };
 
-  // リサイズ開始時：ドラッグ中もハイライトを維持するためクラスを付与
-  resizer.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; resizer.classList.add('resizing'); });
-  resizer.addEventListener('touchstart', (e) => { isResizing = true; resizer.classList.add('resizing'); });
-  
-  const doResize = (clientX) => {
-    if (!isResizing || sidebar.classList.contains('hidden')) return;
-    if (clientX >= 150 && clientX < window.innerWidth * 0.8) {
-      currentWidth = clientX;
-      sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
-      sidebar.style.width = currentWidth + 'px'; sidebar.style.minWidth = currentWidth + 'px';
+  const doDrag = (e) => {
+    if (!isResizing) return;
+    const x = e.clientX || e.touches[0].clientX;
+    const delta = x - startX;
+    if (Math.abs(delta) > 5) moved = true;
+
+    // 閉じている時に右にドラッグしたら開く
+    if (sidebar.classList.contains('hidden') && delta > 20) {
+      sidebar.classList.remove('hidden');
+      toggleBtn.classList.remove('is-hidden');
+    }
+
+    if (!sidebar.classList.contains('hidden')) {
+      let newW = initialW + delta;
+      if (newW < 100) { // 一定以下で閉じる判定
+         sidebar.classList.add('hidden');
+         toggleBtn.classList.add('is-hidden');
+         isResizing = false;
+         finishDrag();
+         return;
+      }
+      currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
+      sidebar.style.width = currentWidth + 'px';
+      sidebar.style.minWidth = currentWidth + 'px';
       toggleBtn.style.left = currentWidth + 'px';
       
       const newFontSize = Math.min(3.5, currentWidth / 85);
       digitalClock.style.fontSize = newFontSize + 'rem';
+      updateBtnIcon();
     }
   };
-  window.addEventListener('mousemove', (e) => doResize(e.clientX));
-  window.addEventListener('touchmove', (e) => { if (isResizing) { doResize(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
-  
-  // リサイズ終了時：クラスを削除してハイライトを消す
-  const endResize = () => { isResizing = false; document.body.style.cursor = 'default'; resizer.classList.remove('resizing'); sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease'; toggleBtn.style.transition = 'left 0.3s ease, background 0.2s'; keepInBounds(); };
-  window.addEventListener('mouseup', endResize); window.addEventListener('touchend', endResize);
 
+  const finishDrag = () => {
+    if (!isResizing) return;
+    isResizing = false;
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    
+    if (sidebar.classList.contains('hidden')) {
+      toggleBtn.style.left = "0px";
+      sidebar.style.marginLeft = `-${currentWidth}px`;
+    } else {
+      toggleBtn.style.left = currentWidth + 'px';
+      sidebar.style.marginLeft = "0";
+    }
+    updateBtnIcon();
+    setTimeout(keepInBounds, 310);
+  };
+
+  // タップ（クリック）での開閉
+  toggleBtn.onclick = () => {
+    if (moved) return; // ドラッグした場合はクリック無視
+    sidebar.classList.toggle('hidden');
+    toggleBtn.classList.toggle('is-hidden');
+    if (sidebar.classList.contains('hidden')) {
+      toggleBtn.style.left = "0px";
+      sidebar.style.marginLeft = `-${currentWidth}px`;
+    } else {
+      toggleBtn.style.left = currentWidth + 'px';
+      sidebar.style.marginLeft = "0";
+    }
+    updateBtnIcon();
+    setTimeout(keepInBounds, 310);
+  };
+
+  toggleBtn.addEventListener('mousedown', startDrag);
+  toggleBtn.addEventListener('touchstart', startDrag, {passive: false});
+  window.addEventListener('mousemove', doDrag);
+  window.addEventListener('touchmove', doDrag, {passive: false});
+  window.addEventListener('mouseup', finishDrag);
+  window.addEventListener('touchend', finishDrag);
+
+  // --- PDF & Clock & Other Logic (維持) ---
+  const fsBtn = document.getElementById('fs-btn');
+  fsBtn.onclick = () => {
+    const target = main; 
+    if (target.requestFullscreen) { if (!document.fullscreenElement) target.requestFullscreen(); else document.exitFullscreen(); }
+    else if (target.webkitRequestFullscreen) { if (!document.webkitFullscreenElement) target.webkitRequestFullscreen(); else document.webkitExitFullscreen(); }
+  };
   function updateClock(){
     const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
@@ -220,7 +237,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       ctx.strokeStyle='#fff'; ctx.stroke(); ctx.restore();
     }
     ctx.fillStyle='#fff'; ctx.font='bold 44px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    for(let i=1; i<=12; i++){ const a=(i*30-90)*(Math.PI/180); ctx.fillText(i, Math.cos(a)*215, Math.sin(a)*215); }
+    for(let i=1; i<=12; i++) { const a=(i*30-90)*(Math.PI/180); ctx.fillText(i, Math.cos(a)*215, Math.sin(a)*215); }
     const h=(d.getHours()%12+d.getMinutes()/60)*30, m=(d.getMinutes()+d.getSeconds()/60)*6, s=d.getSeconds()*6;
     drawHand(ctx,h,160,14,'#fff'); drawHand(ctx,m,230,10,'#fff'); drawHand(ctx,s,250,5,'#ff3b30');
   }
@@ -229,11 +246,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   let doc=null, pn=1, sc=1.0, posX=0, posY=0, isFreeMode=true;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
-  
-  function updateTransform() {
-    cvs.style.transform = `translate(${posX}px, ${posY}px) scale(${sc})`;
-  }
-
+  function updateTransform() { cvs.style.transform = `translate(${posX}px, ${posY}px) scale(${sc})`; }
   function keepInBounds() {
     if (!doc || !isFreeMode) return;
     const rect = cvs.getBoundingClientRect(), contRect = container.getBoundingClientRect(), margin = 100;
@@ -244,65 +257,50 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if (rect.bottom < contRect.top + margin) dy = (contRect.top + margin) - rect.bottom;
     posX += dx; posY += dy; updateTransform();
   }
-
   async function render(){
     if(!doc) return;
-    try {
-      const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1, vp=pg.getViewport({scale:dpr*1.5});
-      cvs.width=vp.width; cvs.height=vp.height;
-      cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
-      await pg.render({canvasContext:ctx, viewport:vp}).promise;
-      document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
-      updateTransform();
-    } catch(e){}
+    const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1, vp=pg.getViewport({scale:dpr*1.5});
+    cvs.width=vp.width; cvs.height=vp.height; cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
+    await pg.render({canvasContext:ctx, viewport:vp}).promise;
+    document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
+    updateTransform();
   }
-
   const btnFix = document.getElementById('m-fix'), btnFree = document.getElementById('m-free');
   btnFix.onclick = () => { isFreeMode=false; btnFix.classList.add('active'); btnFree.classList.remove('active'); };
   btnFree.onclick = () => { isFreeMode=true; btnFree.classList.add('active'); btnFix.classList.remove('active'); };
-
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   document.getElementById('f-p').onchange=(e)=>{
     const f=e.target.files[0]; if(!f) return;
     document.getElementById('pdf-name').textContent=f.name;
-    const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; sc=1.0; posX=0; posY=0; render(); }; r.readAsArrayBuffer(f);
+    const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; render(); }; r.readAsArrayBuffer(f);
   };
-
   let lastDist=0, lastX=0, lastY=0, isPinching=false;
   container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) { isPinching=true; lastDist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY); }
     else if (e.touches.length === 1) { isPinching=false; lastX=e.touches[0].pageX; lastY=e.touches[0].pageY; }
-  }, { passive: false });
-
+  });
   container.addEventListener('touchmove', (e) => {
-    e.preventDefault();
     if (e.touches.length === 2 && isPinching) {
       const dist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
       const zoom=dist/lastDist; const newSc=Math.min(Math.max(sc*zoom, 0.2), 5.0);
-      const cx=(e.touches[0].pageX+e.touches[1].pageX)/2, cy=(e.touches[0].pageY+e.touches[1].pageY)/2;
-      const r=container.getBoundingClientRect(), rx=cx-r.left-posX, ry=cy-r.top-posY;
-      posX -= rx*(newSc/sc-1); posY -= ry*(newSc/sc-1); sc=newSc; lastDist=dist;
+      sc=newSc; lastDist=dist;
     } else if (e.touches.length === 1 && !isPinching && isFreeMode) {
       posX += (e.touches[0].pageX-lastX); posY += (e.touches[0].pageY-lastY);
       lastX=e.touches[0].pageX; lastY=e.touches[0].pageY; keepInBounds();
     }
     updateTransform();
-  }, { passive: false });
-
-  container.addEventListener('touchend', () => { if(isFreeMode) keepInBounds(); });
-
+  });
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
-  au.onended=()=>{ pb.textContent="▶"; };
   au.ontimeupdate=()=>{
     const f=(t)=>{ if(!t||isNaN(t)) return "0:00"; const m=Math.floor(t/60), s=Math.floor(t%60); return m+":"+s.toString().padStart(2,'0'); };
     document.getElementById('time-text').textContent = f(au.currentTime)+"/"+f(au.duration);
   };
   document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
   document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
-  window.addEventListener('resize', keepInBounds);
+  updateBtnIcon(); // 初期アイコン設定
 })();
 </script>
 </body>
