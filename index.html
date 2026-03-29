@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Strict</title>
+<title>Kei.works ViewTune Final-Fix</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -17,7 +17,6 @@ aside {
   display: flex; flex-direction: column; align-items: center; 
   padding: 15px 10px 30px; box-sizing: border-box;
   overflow-y: auto; overflow-x: hidden; z-index: 1000; -webkit-overflow-scrolling: touch;
-  /* 普段の開閉アニメーションのみ。リサイズ中はJSで上書き */
   transition: transform 0.3s ease, margin-left 0.3s ease;
   flex-shrink: 0;
 }
@@ -28,7 +27,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   background: #222; border: 1px solid #444; border-left: none;
   border-radius: 0 8px 8px 0; cursor: col-resize;
   display: flex; align-items: center; justify-content: center;
-  /* transitionを完全に削除しました。ふわふわさせません */
   touch-action: none;
 }
 #toggle-btn.active { background: #444; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
@@ -118,15 +116,26 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   const onStart = (clientX) => {
     startX = clientX; startTime = Date.now(); hasMoved = false; isResizing = false;
+    // 摘み（toggleBtn）でのみ発動するタイマー
     pressTimer = setTimeout(() => { isResizing = true; toggleBtn.classList.add('active'); }, 200);
-    // リサイズ開始時はアニメーションを殺す
     sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
   };
 
   const onMove = (clientX) => {
-    const delta = Math.abs(clientX - startX);
-    if (delta > 3) { clearTimeout(pressTimer); isResizing = true; hasMoved = true; toggleBtn.classList.add('active'); }
-    if (isResizing && !sidebar.classList.contains('hidden')) {
+    if (!isResizing) {
+        // 5px以上動いたら「意図的なドラッグ」としてリサイズ開始
+        if (Math.abs(clientX - startX) > 5) {
+            clearTimeout(pressTimer);
+            isResizing = true;
+            hasMoved = true;
+            toggleBtn.classList.add('active');
+        } else {
+            return; // まだリサイズ確定でなければ何もしない
+        }
+    }
+    
+    // リサイズ中、かつサイドバーが表示されている時のみ幅を更新
+    if (!sidebar.classList.contains('hidden')) {
       let newWidth = clientX;
       if (newWidth < 150) newWidth = 150;
       if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
@@ -139,22 +148,26 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   const onEnd = () => {
     clearTimeout(pressTimer);
+    // 「ドラッグしていない」かつ「短時間の接触」なら開閉
     if (!hasMoved && (Date.now() - startTime < 300)) {
       if (sidebar.classList.contains('hidden')) openSidebar();
       else closeSidebar();
     }
     isResizing = false; toggleBtn.classList.remove('active');
-    // リサイズ終了後も勝手にアニメーションさせない。開閉時のみ適用されるよう管理
     keepInBounds();
   };
 
+  // 摘みにのみイベントを登録（サイドバー本体のスライドではリサイズさせない）
   toggleBtn.addEventListener('mousedown', (e) => onStart(e.clientX));
   window.addEventListener('mousemove', (e) => onMove(e.clientX));
   window.addEventListener('mouseup', onEnd);
   toggleBtn.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX), {passive: false});
-  window.addEventListener('touchmove', (e) => { if(isResizing) { onMove(e.touches[0].clientX); e.preventDefault(); } }, {passive: false});
+  window.addEventListener('touchmove', (e) => { 
+    if(isResizing) { onMove(e.touches[0].clientX); e.preventDefault(); } 
+  }, {passive: false});
   window.addEventListener('touchend', onEnd);
 
+  // --- PDF・時計ロジック（変更なし） ---
   function updateClock(){
     const d=new Date(); digitalClock.textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
@@ -173,7 +186,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }
   function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
-
   let doc=null, pn=1, sc=1.0, posX=0, posY=0, isFreeMode=true;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
   function updateTransform() { cvs.style.transform = `translate(${posX}px, ${posY}px) scale(${sc})`; }
