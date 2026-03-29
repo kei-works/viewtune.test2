@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Final</title>
+<title>Kei.works ViewTune Final Fix</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -97,7 +97,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   setTimeout(unlock, 3000);
 
   const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn'), digitalClock = document.getElementById('digital-clock');
-  let isResizing = false, currentWidth = 300, startX = 0, startTime = 0;
+  let isResizing = false, currentWidth = 300, startX = 0, startTime = 0, hasMovedAtAll = false;
 
   const closeSidebar = () => {
     sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
@@ -115,7 +115,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   };
 
   const startAction = (clientX) => {
-    startX = clientX; startTime = Date.now();
+    startX = clientX; startTime = Date.now(); hasMovedAtAll = false;
     if (sidebar.classList.contains('hidden')) return; 
     isResizing = true; toggleBtn.classList.add('active');
     sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
@@ -123,19 +123,17 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const doAction = (clientX) => {
     if (!isResizing) return;
     let newWidth = clientX;
-    if (newWidth < 150) newWidth = 150; // 150pxで物理停止
+    if (Math.abs(newWidth - startX) > 5) hasMovedAtAll = true;
+    if (newWidth < 150) newWidth = 150; // 物理停止
     if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
     currentWidth = newWidth;
-    sidebar.style.width = currentWidth + 'px';
-    toggleBtn.style.left = currentWidth + 'px';
-    const fontSize = Math.min(3.5, currentWidth / 80); digitalClock.style.fontSize = fontSize + 'rem';
+    sidebar.style.width = currentWidth + 'px'; toggleBtn.style.left = currentWidth + 'px';
+    const fs = Math.min(3.5, currentWidth / 80); digitalClock.style.fontSize = fs + 'rem';
   };
-  const endAction = (endX) => {
-    const finalX = (endX !== undefined) ? endX : startX;
-    const moveX = Math.abs(finalX - startX);
+  const endAction = () => {
     const duration = Date.now() - startTime;
-    // タップ判定を30pxに拡大：スマホの微細なズレを許容
-    if (moveX < 30 && duration < 350) {
+    // 指を離した瞬間に判定：大きく動いていなければ、または短時間なら開閉
+    if (!hasMovedAtAll || duration < 250) {
       if (sidebar.classList.contains('hidden')) openSidebar();
       else closeSidebar();
     }
@@ -149,15 +147,12 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   toggleBtn.addEventListener('mousedown', (e) => startAction(e.clientX));
   window.addEventListener('mousemove', (e) => doAction(e.clientX));
-  window.addEventListener('mouseup', (e) => endAction(e.clientX));
-  toggleBtn.addEventListener('touchstart', (e) => { if (e.touches && e.touches[0]) startAction(e.touches[0].clientX); }, {passive: false});
-  window.addEventListener('touchmove', (e) => { if (isResizing && e.touches && e.touches[0]) { doAction(e.touches[0].clientX); e.preventDefault(); } }, {passive: false});
-  window.addEventListener('touchend', (e) => { 
-    const touchX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : undefined;
-    endAction(touchX);
-  });
+  window.addEventListener('mouseup', endAction);
+  toggleBtn.addEventListener('touchstart', (e) => { if (e.touches[0]) startAction(e.touches[0].clientX); }, {passive: false});
+  window.addEventListener('touchmove', (e) => { if (isResizing && e.touches[0]) { doAction(e.touches[0].clientX); e.preventDefault(); } }, {passive: false});
+  window.addEventListener('touchend', endAction);
 
-  // PDF & 時計描画
+  // PDF & 時計
   function updateClock(){
     const d=new Date(); digitalClock.textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
