@@ -29,7 +29,6 @@ aside {
 }
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
-/* 摘み（兼開閉ボタン）のスタイル */
 #toggle-btn {
   position: absolute; top: 20px; left: 300px;
   z-index: 9999; width: 35px; height: 65px; 
@@ -74,7 +73,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 <div id="splash"><div class="splash-logo">Kei.works</div></div>
 
 <div class="main-wrapper" id="main-content">
-  <button id="toggle-btn">→</button>
+  <button id="toggle-btn">|</button>
   
   <aside id="sidebar">
     <canvas id="clock-cvs"></canvas>
@@ -122,20 +121,15 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const digitalClock = document.getElementById('digital-clock');
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
-  // ボタンアイコンの更新関数
+  // ボタンアイコンの更新関数：シンプルに開閉状態のみで判定
   function updateBtnIcon() {
     if (sidebar.classList.contains('hidden')) {
       toggleBtn.textContent = "→";
-    } else if (isResizing) {
-      toggleBtn.textContent = "‖";
-    } else if (currentWidth <= 150) {
-      toggleBtn.textContent = "←";
     } else {
-      toggleBtn.textContent = "←";
+      toggleBtn.textContent = "|";
     }
   }
 
-  // リサイズロジック
   const startDrag = (e) => {
     isResizing = true;
     moved = false;
@@ -143,7 +137,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     initialW = currentWidth;
     toggleBtn.style.transition = 'none';
     sidebar.style.transition = 'none';
-    updateBtnIcon();
   };
 
   const doDrag = (e) => {
@@ -152,15 +145,15 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const delta = x - startX;
     if (Math.abs(delta) > 5) moved = true;
 
-    // 閉じている時に右にドラッグしたら開く
     if (sidebar.classList.contains('hidden') && delta > 20) {
       sidebar.classList.remove('hidden');
       toggleBtn.classList.remove('is-hidden');
+      updateBtnIcon();
     }
 
     if (!sidebar.classList.contains('hidden')) {
       let newW = initialW + delta;
-      if (newW < 100) { // 一定以下で閉じる判定
+      if (newW < 80) { // 閉じ判定
          sidebar.classList.add('hidden');
          toggleBtn.classList.add('is-hidden');
          isResizing = false;
@@ -195,9 +188,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     setTimeout(keepInBounds, 310);
   };
 
-  // タップ（クリック）での開閉
   toggleBtn.onclick = () => {
-    if (moved) return; // ドラッグした場合はクリック無視
+    if (moved) return;
     sidebar.classList.toggle('hidden');
     toggleBtn.classList.toggle('is-hidden');
     if (sidebar.classList.contains('hidden')) {
@@ -300,7 +292,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   };
   document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
   document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
-  updateBtnIcon(); // 初期アイコン設定
+  updateBtnIcon();
 })();
 </script>
 </body>
