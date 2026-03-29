@@ -74,7 +74,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="sep"></div>
     <label for="f-a" class="file-select-btn">放送音声選択</label>
     <input type="file" id="f-a" accept="audio/*" style="display:none">
-    <div id="audio-name" class="info-label">放送未選択</div>
+    <div id="audio-name" class="info-label">音声未選択</div>
     <div class="audio-row">
       <button id="p-b" class="round-btn">▶</button>
       <div id="time-text">0:00/0:00</div>
@@ -102,8 +102,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }
 
   const startDrag = (e) => {
-    if (sidebar.classList.contains('hidden')) return; // 閉じている時はドラッグ不可
-    
+    if (sidebar.classList.contains('hidden')) return;
     isResizing = true; moved = false;
     startX = e.clientX || e.touches[0].clientX;
     initialW = currentWidth;
@@ -117,7 +116,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
     
-    // 指示内容：150pxの時、さらに左（縮める方向）へ動かそうとしたら無視
+    // 150pxの時、さらに縮める動き(delta < 0)だけを無視。広げる・クリックは可能。
     if (currentWidth <= 150 && delta < 0) return;
 
     if (Math.abs(delta) > 5) moved = true;
@@ -147,7 +146,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   toggleBtn.onclick = () => {
     const isHidden = sidebar.classList.contains('hidden');
-    if (moved && !isHidden) return; // ドラッグ移動した場合はクリック処理（閉じる）をスルー
+    if (moved && !isHidden) return;
     if (!isHidden && currentWidth <= 155) { sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden'); } 
     else {
       const willOpen = isHidden;
@@ -193,6 +192,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if (!doc) return;
     const pg = await doc.getPage(pn);
     const dpr = window.devicePixelRatio || 1;
+    // --- ヌルサク復旧設定 ---
     const vp = pg.getViewport({scale: dpr * 1.5});
     cvs.width = vp.width; cvs.height = vp.height;
     cvs.style.width = (vp.width / dpr) + 'px';
