@@ -33,11 +33,11 @@ aside {
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 #toggle-btn {
-  position: absolute; top: 20px; left: 300px; /* 少し下にずらしました */
+  position: absolute; top: 20px; left: 300px;
   transform: none; z-index: 9999;
   width: 25px; height: 60px; 
   background: #222; border: 1px solid #444; border-left: none;
-  border-radius: 0 8px 8px 0; cursor: pointer; /* 角を上下丸くしました */
+  border-radius: 0 8px 8px 0; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: left 0.3s ease, background 0.2s;
   touch-action: auto;
@@ -141,6 +141,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   const sidebar = document.getElementById('sidebar'), resizer = document.getElementById('resizer'), toggleBtn = document.getElementById('toggle-btn');
   const fsBtn = document.getElementById('fs-btn');
+  const digitalClock = document.getElementById('digital-clock');
   let isResizing = false, currentWidth = 300;
 
   // 全画面
@@ -184,6 +185,10 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
       sidebar.style.width = currentWidth + 'px'; sidebar.style.minWidth = currentWidth + 'px';
       toggleBtn.style.left = currentWidth + 'px';
+      
+      // 時計フォントサイズの動的調整（ここを追加）
+      const newFontSize = Math.min(2.8, currentWidth / 100);
+      digitalClock.style.fontSize = newFontSize + 'rem';
     }
   };
   window.addEventListener('mousemove', (e) => doResize(e.clientX));
