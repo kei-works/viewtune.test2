@@ -1,121 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Kei.works ViewTune Fix-V3</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <style>
-/* ...既存のスタイル... */
+  /* 基本設定 */
+  body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
+  
+  /* スプラッシュ */
+  #splash { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.8s ease; pointer-events: none; }
+  .splash-logo { font-family: 'Montserrat', sans-serif; font-size: 26px; font-weight: 100; letter-spacing: 12px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
-aside { 
-  width: 300px; 
-  height: 100vh; 
-  background: #111; 
-  border-right: 1px solid #333; 
-  position: relative;
-  z-index: 1000;
-  flex-shrink: 0;
-  transition: margin-left 0.3s ease; /* transitionを標準装備に */
-}
+  /* メインレイアウト */
+  .main-wrapper { display: flex; width: 100vw; height: 100vh; background: #000; position: relative; }
 
-/* 閉じている状態：margin-leftで制御するのが一番確実です */
-aside.is-hidden {
-  margin-left: -300px;
-}
+  /* サイドバー：初期状態は表示（JSで制御） */
+  aside { 
+    width: 300px; height: 100vh; background: #111; border-right: 1px solid #333; 
+    flex-shrink: 0; overflow-y: auto; z-index: 1000;
+    transition: width 0.3s ease, transform 0.3s ease;
+  }
 
-#toggle-btn {
-  position: absolute; 
-  top: 50%; 
-  transform: translateY(-50%);
-  left: 300px; 
-  z-index: 9999;
-  width: 24px; height: 80px; 
-  background: #222; 
-  border: 1px solid #444; 
-  border-left: none;
-  border-radius: 0 8px 8px 0; 
-  display: flex; align-items: center; justify-content: center;
-  touch-action: none;
-  transition: left 0.3s ease; /* サイドバーの動きと同期 */
-}
+  /* 閉じている状態 */
+  aside.is-hidden { width: 0 !important; transform: translateX(-100%); border-right: none; }
 
-/* サイドバーが隠れた時のボタン位置 */
-aside.is-hidden + #toggle-btn {
-  left: 0;
-}
+  /* 摘みボタン */
+  #toggle-btn {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    left: 300px; z-index: 9999;
+    width: 24px; height: 80px; background: #222; border: 1px solid #444; border-left: none;
+    border-radius: 0 8px 8px 0; display: flex; align-items: center; justify-content: center;
+    touch-action: none; transition: left 0.3s ease;
+  }
+  #toggle-btn::after { content: ""; width: 2px; height: 20px; background: #fff; border-radius: 2px; }
+  #toggle-btn.active { background: #444; }
 
-/* ドラッグ中（リサイズ中）はアニメーションを切って追従性を上げる */
-.dragging aside, .dragging #toggle-btn {
-  transition: none !important;
-}
+  /* ドラッグ中はアニメーションをオフにして追従させる */
+  .dragging aside, .dragging #toggle-btn { transition: none !important; }
+
+  /* PDF表示エリア */
+  main { flex-grow: 1; position: relative; background: #000; }
 </style>
+</head>
+<body>
+
+<div id="splash"><div class="splash-logo">VIEW TUNE</div></div>
+
+<div class="main-wrapper">
+  <aside id="sidebar">
+    <div style="padding: 20px; text-align: center;">MENU</div>
+  </aside>
+  
+  <div id="toggle-btn"></div>
+
+  <main id="pdf-container">
+    </main>
+</div>
 
 <script>
-const aside = document.querySelector('aside');
-const toggleBtn = document.getElementById('toggle-btn');
-const wrapper = document.querySelector('.main-wrapper');
+  const splash = document.getElementById('splash');
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('toggle-btn');
+  const wrapper = document.querySelector('.main-wrapper');
 
-let isDragging = false;
-let startX = 0;
-let currentWidth = 300;
-let hasMoved = false; // タップかドラッグかを判定するフラグ
+  let isDragging = false;
+  let startX = 0;
+  let currentWidth = 300;
+  let hasMoved = false;
 
-// タッチ開始
-toggleBtn.addEventListener('touchstart', (e) => {
-  isDragging = true;
-  hasMoved = false;
-  startX = e.touches[0].clientX;
-  currentWidth = aside.offsetWidth;
-  wrapper.classList.add('dragging'); // アニメーションを一時無効化
-}, { passive: true });
+  // スプラッシュ解除
+  window.addEventListener('load', () => {
+    setTimeout(() => { splash.style.opacity = '0'; }, 1000);
+  });
 
-// タッチ中（リサイズ）
-window.addEventListener('touchmove', (e) => {
-  if (!isDragging) return;
-  
-  const deltaX = e.touches[0].clientX - startX;
-  if (Math.abs(deltaX) > 5) hasMoved = true; // 5px以上動いたらドラッグとみなす
+  // タッチ開始
+  toggleBtn.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    hasMoved = false;
+    startX = e.touches[0].clientX;
+    currentWidth = sidebar.classList.contains('is-hidden') ? 0 : sidebar.offsetWidth;
+    wrapper.classList.add('dragging');
+    toggleBtn.classList.add('active');
+  }, { passive: true });
 
-  let newWidth = currentWidth + deltaX;
-  if (newWidth < 50) newWidth = 0; // 一定以下で閉じる準備
-  if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
+  // タッチ移動（リサイズ）
+  window.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.touches[0].clientX - startX;
+    
+    // 10px以上の移動でドラッグと判定
+    if (Math.abs(deltaX) > 10) hasMoved = true;
 
-  aside.style.width = newWidth + 'px';
-  toggleBtn.style.left = newWidth + 'px';
-}, { passive: false });
+    if (hasMoved) {
+      let newWidth = currentWidth + deltaX;
+      if (newWidth < 0) newWidth = 0;
+      if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
+      
+      sidebar.classList.remove('is-hidden');
+      sidebar.style.width = newWidth + 'px';
+      toggleBtn.style.left = newWidth + 'px';
+    }
+  }, { passive: false });
 
-// タッチ終了
-window.addEventListener('touchend', () => {
-  if (!isDragging) return;
-  isDragging = false;
-  wrapper.classList.remove('dragging');
+  // タッチ終了
+  window.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    wrapper.classList.remove('dragging');
+    toggleBtn.classList.remove('active');
 
-  if (!hasMoved) {
-    // 【重要】ドラッグしていなければ「タップ」として開閉
-    toggleSidebar();
-  } else {
-    // ドラッグ終了時のスナップ処理
-    const finalWidth = aside.offsetWidth;
-    if (finalWidth < 150) {
-      closeSidebar();
+    if (!hasMoved) {
+      // 純粋なタップなら開閉
+      toggleSidebar();
     } else {
-      openSidebar(finalWidth);
+      // ドラッグ終了時のスナップ
+      const finalWidth = sidebar.offsetWidth;
+      if (finalWidth < 100) {
+        closeSidebar();
+      } else {
+        openSidebar(finalWidth);
+      }
+    }
+  });
+
+  function toggleSidebar() {
+    if (sidebar.classList.contains('is-hidden')) {
+      openSidebar(300);
+    } else {
+      closeSidebar();
     }
   }
-});
 
-function toggleSidebar() {
-  if (aside.classList.contains('is-hidden')) {
-    openSidebar(300);
-  } else {
-    closeSidebar();
+  function openSidebar(width) {
+    sidebar.classList.remove('is-hidden');
+    sidebar.style.width = width + 'px';
+    toggleBtn.style.left = width + 'px';
   }
-}
 
-function openSidebar(width) {
-  aside.classList.remove('is-hidden');
-  aside.style.width = width + 'px';
-  aside.style.marginLeft = '0';
-  toggleBtn.style.left = width + 'px';
-}
-
-function closeSidebar() {
-  aside.classList.add('is-hidden');
-  aside.style.marginLeft = '-300px'; // CSSのwidthと合わせる
-  toggleBtn.style.left = '0';
-}
+  function closeSidebar() {
+    sidebar.classList.add('is-hidden');
+    sidebar.style.width = '0px';
+    toggleBtn.style.left = '0px';
+  }
 </script>
+</body>
+</html>
