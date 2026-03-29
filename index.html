@@ -1,22 +1,223 @@
-// toggleBtn.onclick の中身を以下のように修正しました
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Kei.works ViewTune Handle-Fix</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<style>
+body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
+
+#splash {
+  position: fixed; inset: 0; background: #000; z-index: 9999; 
+  display: flex; justify-content: center; align-items: center; 
+  transition: opacity 0.8s ease-in-out; pointer-events: none; opacity: 1;
+}
+.splash-logo { font-family: 'Montserrat', sans-serif; font-size: 26px; font-weight: 100; letter-spacing: 12px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+.main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; position: relative; background: #000; overflow: hidden; } 
+
+aside { 
+  width: 300px; min-width: 150px; max-width: 80vw; height: 100vh; 
+  background: #111; border-right: 1px solid #333; 
+  display: flex; flex-direction: column; align-items: center; 
+  padding: 15px 10px 30px; box-sizing: border-box;
+  overflow-y: auto; overflow-x: hidden; z-index: 1000;
+  transition: transform 0.3s ease, margin-left 0.3s ease;
+  flex-shrink: 0;
+}
+aside.hidden { transform: translateX(-100%); margin-left: -300px; }
+
+#toggle-btn {
+  position: absolute; top: 20px; left: 300px;
+  z-index: 9999; width: 35px; height: 65px; 
+  background: #222; border: 1px solid #444; border-left: none;
+  border-radius: 0 8px 8px 0; cursor: grab;
+  display: flex; align-items: center; justify-content: center;
+  transition: left 0.3s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  touch-action: none; font-size: 18px; color: #fff;
+}
+
+#toggle-btn:active { 
+  cursor: grabbing; 
+  background: #444; 
+  border-color: #fff; 
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+#toggle-btn.is-hidden { left: 0 !important; border-left: 1px solid #444; border-radius: 0 8px 8px 0; }
+#toggle-btn.is-hidden:active { border-left-color: #fff; }
+
+#fs-btn {
+  position: absolute; top: 15px; right: 15px; z-index: 150;
+  width: 36px; height: 36px; background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  border-radius: 6px; cursor: pointer; backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
+#clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
+#digital-clock { font-size: 3.5rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
+
+.round-btn { width: 42px; height: 42px; border-radius: 50%; background: #ddd; color: #000; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 8px 0; flex-shrink: 0; }
+.file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 85%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin: 0 auto 5px; display: block; flex-shrink: 0; }
+.info-label { font-size: 12px; color: #fff; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; flex-shrink: 0; }
+#page-num { font-size: 14px; color: #fff; min-width: 50px; text-align: center; flex-shrink: 0; font-weight: 600; }
+.mode-switch { width: 85%; display: flex; background: #333; border-radius: 15px; margin: 5px auto 0; padding: 2px; flex-shrink: 0; }
+.mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 6px 0; cursor: pointer; border-radius: 13px; }
+.mode-btn.active { background: #fff; color: #000; }
+.c-text { font-size: 9px; color: #444; margin: 20px 0 10px; text-align: center; width: 100%; flex-shrink: 0; }
+#pdf-container { flex: 1; overflow: hidden; background: #111; position: relative; touch-action: none; }
+#pdf-canvas { position: absolute; top: 0; left: 0; display: block; transform-origin: 0 0; will-change: transform; }
+.audio-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 5px; flex-shrink: 0; }
+#time-text { font-size: 12px; color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="splash-logo">Kei.works</div></div>
+
+<div class="main-wrapper" id="main-content">
+  <button id="toggle-btn">|</button>
+  <aside id="sidebar">
+    <canvas id="clock-cvs"></canvas>
+    <div id="digital-clock">00:00:00</div>
+    <div class="sep"></div>
+    <label for="f-p" class="file-select-btn">仕業選択</label>
+    <input type="file" id="f-p" accept="application/pdf" style="display:none">
+    <div id="pdf-name" class="info-label">PDF未選択</div>
+    <div class="btn-row">
+      <button id="b-p" class="round-btn">←</button>
+      <div id="page-num">0 / 0</div>
+      <button id="n-pg" class="round-btn">→</button>
+    </div>
+    <div class="mode-switch">
+      <button id="m-free" class="mode-btn active">FREE</button>
+      <button id="m-fix" class="mode-btn">FIX</button>
+    </div>
+    <div class="sep"></div>
+    <label for="f-a" class="file-select-btn">放送音声選択</label>
+    <input type="file" id="f-a" accept="audio/*" style="display:none">
+    <div id="audio-name" class="info-label">曲未選択</div>
+    <div class="audio-row">
+      <button id="p-b" class="round-btn">▶</button>
+      <div id="time-text">0:00/0:00</div>
+    </div>
+    <div class="sep"></div>
+    <div class="c-text">©Kei.works</div>
+  </aside>
+
+  <main id="pdf-container">
+    <button id="fs-btn" title="全画面モード">⛶</button>
+    <canvas id="pdf-canvas"></canvas>
+  </main>
+</div>
+
+<script>
+(function(){
+  const splash = document.getElementById('splash'), main = document.getElementById('main-content');
+  let unlocked = false;
+  function unlock() { if(!unlocked){ unlocked=true; splash.style.opacity='0'; main.style.visibility='visible'; setTimeout(()=>splash.style.display='none', 1000); } }
+  window.addEventListener('load', () => setTimeout(unlock, 1500));
+  setTimeout(unlock, 3000);
+
+  const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn');
+  const digitalClock = document.getElementById('digital-clock');
+  let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
+
+  function updateBtnIcon() {
+    // 閉じている時は「→」
+    if (sidebar.classList.contains('hidden') || toggleBtn.classList.contains('is-hidden')) {
+      toggleBtn.textContent = "→";
+    } 
+    // 重要：掴んでリサイズ中は常に「|」
+    else if (isResizing) {
+      toggleBtn.textContent = "|";
+    }
+    // 最小値(ドラッグ中でない時)は「←」
+    else if (currentWidth <= 155) {
+      toggleBtn.textContent = "←"; 
+    } 
+    // 通常(ドラッグ中でない時)は「|」
+    else {
+      toggleBtn.textContent = "|"; 
+    }
+  }
+
+  const startDrag = (e) => {
+    isResizing = true;
+    moved = false;
+    startX = e.clientX || e.touches[0].clientX;
+    initialW = currentWidth;
+    toggleBtn.style.transition = 'none';
+    sidebar.style.transition = 'none';
+    updateBtnIcon(); // アイコンを「|」に固定
+  };
+
+  const doDrag = (e) => {
+    if (!isResizing) return;
+    const x = e.clientX || e.touches[0].clientX;
+    const delta = x - startX;
+    if (Math.abs(delta) > 5) moved = true;
+
+    if (sidebar.classList.contains('hidden') && delta > 20) {
+      sidebar.classList.remove('hidden');
+      toggleBtn.classList.remove('is-hidden');
+    }
+
+    if (!sidebar.classList.contains('hidden')) {
+      let newW = initialW + delta;
+      
+      if (newW < 80) { 
+         sidebar.classList.add('hidden');
+         toggleBtn.classList.add('is-hidden');
+         toggleBtn.style.left = "0px";
+         updateBtnIcon();
+         return;
+      }
+
+      currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
+      sidebar.style.width = currentWidth + 'px';
+      sidebar.style.minWidth = currentWidth + 'px';
+      toggleBtn.style.left = currentWidth + 'px';
+      
+      const newFontSize = Math.min(3.5, currentWidth / 85);
+      digitalClock.style.fontSize = newFontSize + 'rem';
+      // ドラッグ中はupdateBtnIconを呼ばない(「|」を維持)
+    }
+  };
+
+  const finishDrag = () => {
+    if (!isResizing) return;
+    isResizing = false; // ドラッグ終了
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s';
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    
+    if (sidebar.classList.contains('hidden')) {
+      toggleBtn.style.left = "0px";
+      sidebar.style.marginLeft = `-${currentWidth}px`;
+    } else {
+      toggleBtn.style.left = currentWidth + 'px';
+      sidebar.style.marginLeft = "0";
+    }
+    updateBtnIcon(); // 終了後の幅に応じてアイコンを更新
+  };
+
   toggleBtn.onclick = () => {
     if (moved) return;
-
-    // 現在の状態を判定
     const isHidden = sidebar.classList.contains('hidden');
     
-    // 閉じているか、あるいは開いているけど最小幅(150px)付近にいる場合
     if (!isHidden && currentWidth <= 155) {
-      // 強制的に閉じる
       sidebar.classList.add('hidden');
       toggleBtn.classList.add('is-hidden');
     } else {
-      // それ以外は通常のトグル（開閉）
       sidebar.classList.toggle('hidden');
       toggleBtn.classList.toggle('is-hidden');
     }
 
-    // 位置とアイコンの更新
     if (sidebar.classList.contains('hidden')) {
       toggleBtn.style.left = "0px";
       sidebar.style.marginLeft = `-${currentWidth}px`;
@@ -26,3 +227,57 @@
     }
     updateBtnIcon();
   };
+
+  toggleBtn.addEventListener('mousedown', startDrag);
+  toggleBtn.addEventListener('touchstart', startDrag, {passive: false});
+  window.addEventListener('mousemove', doDrag);
+  window.addEventListener('touchmove', doDrag, {passive: false});
+  window.addEventListener('mouseup', finishDrag);
+  window.addEventListener('touchend', finishDrag);
+
+  // --- Clock & PDF Maintain ---
+  function updateClock(){
+    const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
+    const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
+    canvas.width=600; canvas.height=600; ctx.translate(300,300);
+    ctx.beginPath(); ctx.arc(0,0,280,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=6; ctx.stroke();
+    for(let i=0; i<60; i++){
+      ctx.save(); ctx.rotate(i*6*Math.PI/180); ctx.beginPath();
+      if(i%5===0){ ctx.moveTo(0,-280); ctx.lineTo(0,-250); ctx.lineWidth=6; }
+      else { ctx.moveTo(0,-280); ctx.lineTo(0,-265); ctx.lineWidth=2; }
+      ctx.strokeStyle='#fff'; ctx.stroke(); ctx.restore();
+    }
+    ctx.fillStyle='#fff'; ctx.font='bold 44px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(let i=1; i<=12; i++) { const a=(i*30-90)*(Math.PI/180); ctx.fillText(i, Math.cos(a)*215, Math.sin(a)*215); }
+    const h=(d.getHours()%12+d.getMinutes()/60)*30, m=(d.getMinutes()+d.getSeconds()/60)*6, s=d.getSeconds()*6;
+    drawHand(ctx,h,160,14,'#fff'); drawHand(ctx,m,230,10,'#fff'); drawHand(ctx,s,250,5,'#ff3b30');
+  }
+  function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
+  setInterval(updateClock, 1000); updateClock();
+
+  let doc=null, pn=1, sc=1.0, posX=0, posY=0;
+  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+  document.getElementById('f-p').onchange=(e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    document.getElementById('pdf-name').textContent=f.name;
+    const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; render(); }; r.readAsArrayBuffer(f);
+  };
+  async function render(){
+    if(!doc) return;
+    const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1, vp=pg.getViewport({scale:dpr*1.5});
+    cvs.width=vp.width; cvs.height=vp.height; cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
+    await pg.render({canvasContext:ctx, viewport:vp}).promise;
+    document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
+  }
+  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
+  fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
+  pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
+  document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
+  document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
+  updateBtnIcon();
+})();
+</script>
+</body>
+</html>
