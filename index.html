@@ -115,10 +115,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if (!isResizing) return;
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
-    
-    // 150pxの時に左へ縮める動きだけ制限。右広げ・クリックは有効。
-    if (currentWidth <= 150 && delta < 0) return;
-
     if (Math.abs(delta) > 5) moved = true;
     let newW = initialW + delta;
     if (newW < 80) { 
@@ -130,7 +126,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     sidebar.style.minWidth = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
     digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
-    updateBtnIcon();
   };
 
   const finishDrag = () => {
@@ -170,6 +165,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('mouseup', finishDrag);
   window.addEventListener('touchend', finishDrag);
 
+  // --- PDF (初期ヌルサク仕様) ---
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   let doc=null, pn=1;
@@ -202,6 +198,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   document.getElementById('b-p').onclick = () => { if (doc && pn > 1) { pn--; render(); } };
   document.getElementById('n-pg').onclick = () => { if (doc && pn < doc.numPages) { pn++; render(); } };
 
+  // --- Audio ---
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a'), tt=document.getElementById('time-text');
   function fmt(s){ if(!s||isNaN(s)) return "0:00"; const m=Math.floor(s/60); s=Math.floor(s%60); return m+":"+(s<10?"0":"")+s; }
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
@@ -209,6 +206,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   au.ontimeupdate=()=>{ tt.textContent=fmt(au.currentTime)+"/"+fmt(au.duration); };
   au.onended=()=>{ pb.textContent="▶"; };
 
+  // --- Clock ---
   function updateClock(){
     const d=new Date(); digitalClock.textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
