@@ -74,7 +74,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="sep"></div>
     <label for="f-a" class="file-select-btn">放送音声選択</label>
     <input type="file" id="f-a" accept="audio/*" style="display:none">
-    <div id="audio-name" class="info-label">音声未選択</div>
+    <div id="audio-name" class="info-label">放送未選択</div>
     <div class="audio-row">
       <button id="p-b" class="round-btn">▶</button>
       <div id="time-text">0:00/0:00</div>
@@ -102,7 +102,9 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }
 
   const startDrag = (e) => {
-    if (sidebar.classList.contains('hidden')) return;
+    // 指示内容：幅が150px以下の時はドラッグ（リサイズ）を無効化
+    if (sidebar.classList.contains('hidden') || currentWidth <= 150) return;
+    
     isResizing = true; moved = false;
     startX = e.clientX || e.touches[0].clientX;
     initialW = currentWidth;
@@ -126,6 +128,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     sidebar.style.minWidth = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
     digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
+    updateBtnIcon();
   };
 
   const finishDrag = () => {
@@ -202,8 +205,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
   au.ontimeupdate=()=>{ tt.textContent=fmt(au.currentTime)+"/"+fmt(au.duration); };
-  
-  // 再生終了時にボタンを▶に戻す
   au.onended=()=>{ pb.textContent="▶"; };
 
   function updateClock(){
