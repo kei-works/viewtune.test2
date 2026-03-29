@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Final-Logic-Fixed</title>
+<title>Kei.works ViewTune Final-Logic-Ultra</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -131,58 +131,77 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn');
   const fsBtn = document.getElementById('fs-btn'), digitalClock = document.getElementById('digital-clock');
   
-  let isResizing = false, currentWidth = 300, isMoved = false;
+  let isResizing = false, currentWidth = 300, startX = 0, isMoved = false;
 
+  // --- タッチ・クリック判定の完全分離 ---
   const startAction = (clientX) => {
-    isResizing = true; isMoved = false;
-    // 閉じている時はハイライトしない
-    if (!sidebar.classList.contains('hidden')) toggleBtn.classList.add('resizing');
+    isResizing = true;
+    isMoved = false;
+    startX = clientX;
+    if (!sidebar.classList.contains('hidden')) {
+      toggleBtn.classList.add('resizing');
+    }
     document.body.style.cursor = 'col-resize';
   };
 
-  toggleBtn.addEventListener('mousedown', (e) => startAction(e.clientX));
-  toggleBtn.addEventListener('touchstart', (e) => startAction(e.touches[0].clientX), { passive: true });
-
   const doAction = (clientX) => {
-    if (!isResizing || sidebar.classList.contains('hidden')) return;
-    if (clientX >= 150 && clientX < window.innerWidth * 0.8) {
-      isMoved = true; currentWidth = clientX;
-      sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
-      sidebar.style.width = currentWidth + 'px'; sidebar.style.minWidth = currentWidth + 'px';
+    if (!isResizing) return;
+    
+    // 5px以上動いたらドラッグ確定。閉じている時はドラッグを無効化。
+    const delta = Math.abs(clientX - startX);
+    if (delta > 5 && !sidebar.classList.contains('hidden')) {
+      isMoved = true;
+      currentWidth = clientX;
+      sidebar.style.transition = 'none'; 
+      toggleBtn.style.transition = 'none';
+      sidebar.style.width = currentWidth + 'px'; 
+      sidebar.style.minWidth = currentWidth + 'px';
       toggleBtn.style.left = currentWidth + 'px';
       digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
     }
   };
-
-  window.addEventListener('mousemove', (e) => doAction(e.clientX));
-  window.addEventListener('touchmove', (e) => { 
-    if (isResizing) { doAction(e.touches[0].clientX); if(e.cancelable) e.preventDefault(); } 
-  }, { passive: false });
 
   const endAction = () => {
     if (!isResizing) return;
     isResizing = false;
     toggleBtn.classList.remove('resizing');
     document.body.style.cursor = 'default';
-    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease';
-    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
 
+    // ドラッグ中でなければ「タップ」として開閉
     if (!isMoved) {
-      sidebar.classList.toggle('hidden'); toggleBtn.classList.toggle('is-hidden');
-      if (sidebar.classList.contains('hidden')) {
-        toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`;
+      const willHide = !sidebar.classList.contains('hidden');
+      sidebar.classList.toggle('hidden', willHide);
+      toggleBtn.classList.toggle('is-hidden', willHide);
+      
+      sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease';
+      toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+
+      if (willHide) {
+        toggleBtn.style.left = "0px";
+        sidebar.style.marginLeft = `-${currentWidth}px`;
       } else {
-        toggleBtn.style.left = currentWidth + "px"; sidebar.style.marginLeft = "0";
+        toggleBtn.style.left = currentWidth + "px";
+        sidebar.style.marginLeft = "0";
       }
+    } else {
+      // ドラッグ終了時の後片付け（transitionを戻す）
+      sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease';
+      toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
     }
     setTimeout(keepInBounds, 310);
   };
 
+  // イベント登録
+  toggleBtn.addEventListener('mousedown', (e) => startAction(e.clientX));
+  toggleBtn.addEventListener('touchstart', (e) => startAction(e.touches[0].clientX), { passive: true });
+  window.addEventListener('mousemove', (e) => doAction(e.clientX));
+  window.addEventListener('touchmove', (e) => { if (isResizing) { doAction(e.touches[0].clientX); if(e.cancelable) e.preventDefault(); } }, { passive: false });
   window.addEventListener('mouseup', endAction);
   window.addEventListener('touchend', endAction);
 
+  // --- フルスクリーン・PDF・時計・オーディオ（変更なし・全機能維持） ---
   fsBtn.onclick = () => {
-    const target = main;
+    const target = document.getElementById('pdf-container');
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       if (target.requestFullscreen) target.requestFullscreen();
       else if (target.webkitRequestFullscreen) target.webkitRequestFullscreen();
@@ -271,7 +290,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
-  au.onended=()=>{ pb.textContent="▶"; }; // ここでアイコンを戻します
+  au.onended=()=>{ pb.textContent="▶"; }; 
   au.ontimeupdate=()=>{
     const f=(t)=>{ if(!t||isNaN(t)) return "0:00"; const m=Math.floor(t/60), s=Math.floor(t%60); return m+":"+s.toString().padStart(2,'0'); };
     document.getElementById('time-text').textContent = f(au.currentTime)+"/"+f(au.duration);
