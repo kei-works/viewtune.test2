@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Final-Custom</title>
+<title>Kei.works ViewTune Final-Icon-Fixed</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -124,14 +124,15 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn');
   const digitalClock = document.getElementById('digital-clock');
   
-  // --- 摘みのロジック（スライド最小150px固定、タップでクローズ仕様） ---
+  // --- 摘みのロジック（アイコン固定版） ---
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
   function updateBtnIcon() {
-    if (sidebar.classList.contains('hidden')) { toggleBtn.textContent = "→"; } 
-    else if (isResizing) { toggleBtn.textContent = "|"; } 
-    else if (currentWidth <= 155) { toggleBtn.textContent = "←"; } 
-    else { toggleBtn.textContent = "|"; }
+    if (sidebar.classList.contains('hidden')) { 
+      toggleBtn.textContent = "→"; // 閉じている時だけ「開く」アイコン
+    } else {
+      toggleBtn.textContent = "|"; // 開いている時は幅に関わらず「｜」
+    }
   }
 
   const startDrag = (e) => {
@@ -152,7 +153,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if (Math.abs(delta) > 5) moved = true;
 
     let newW = initialW + delta;
-    // スライドでは最小150pxで止まり、自動クローズしない設定
     currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
     
     sidebar.style.width = currentWidth + 'px';
@@ -173,10 +173,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   toggleBtn.onclick = () => {
     const isHidden = sidebar.classList.contains('hidden');
-    // ドラッグ直後の誤作動防止
     if (moved && !isHidden) { moved = false; return; }
 
-    // 最小幅（155px以下）の時にタップしたら閉じる
     if (!isHidden && currentWidth <= 155) {
       sidebar.classList.add('hidden');
       toggleBtn.classList.add('is-hidden');
@@ -185,7 +183,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       sidebar.classList.toggle('hidden');
       toggleBtn.classList.toggle('is-hidden');
       if (willOpen) {
-        currentWidth = 200; // 開く時は使いやすい幅で固定
+        currentWidth = 200;
         sidebar.style.width = currentWidth + 'px';
         sidebar.style.minWidth = currentWidth + 'px';
         digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
