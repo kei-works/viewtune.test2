@@ -1,4 +1,137 @@
-// --- 修正版：摘みの制御ロジック（真っ白画面回避） ---
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Kei.works ViewTune Final Fix</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<style>
+/* 基礎設定 - 変更なし */
+body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; touch-action: none; position: fixed; width: 100%; height: 100%; }
+
+#splash { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; transition: opacity 0.8s ease-in-out; pointer-events: none; opacity: 1; }
+.splash-logo { font-family: 'Montserrat', sans-serif; font-size: 26px; font-weight: 100; letter-spacing: 12px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+.main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; position: relative; background: #000; overflow: hidden; } 
+
+aside { 
+  width: 300px; min-width: 0; max-width: 80vw; height: 100vh; 
+  background: #111; border-right: 1px solid #333; 
+  display: flex; flex-direction: column; align-items: center; 
+  padding: 15px 10px 30px; box-sizing: border-box;
+  overflow-y: auto; overflow-x: hidden; z-index: 1000; -webkit-overflow-scrolling: touch;
+  transition: transform 0.3s ease, margin-left 0.3s ease;
+  flex-shrink: 0;
+}
+aside.hidden { transform: translateX(-100%); margin-left: -300px; }
+
+/* 摘みのデザイン - 上部配置・ハイライト */
+#toggle-btn {
+  position: absolute; top: 15px; left: 300px; z-index: 9999;
+  width: 20px; height: 80px; 
+  background: #222; border: 1px solid #444; border-left: none;
+  border-radius: 0 8px 8px 0; cursor: col-resize;
+  display: flex; align-items: center; justify-content: center;
+  transition: left 0.3s ease, background 0.2s, box-shadow 0.2s;
+  touch-action: none;
+}
+#toggle-btn.active { background: #444; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
+#toggle-btn::after { content: ""; width: 2px; height: 20px; background: #fff; border-radius: 2px; }
+#toggle-btn.is-hidden { left: 0 !important; cursor: pointer; }
+
+/* デジタル時計 - 可変サイズ */
+#digital-clock { font-size: 3.5rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; white-space: nowrap; }
+
+/* その他UI要素 - 変更なし */
+#clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
+#fs-btn { position: absolute; top: 15px; right: 15px; z-index: 150; width: 36px; height: 36px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 6px; cursor: pointer; backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; }
+.sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
+.round-btn { width: 42px; height: 42px; border-radius: 50%; background: #ddd; color: #000; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 8px 0; flex-shrink: 0; }
+.file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 85%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin: 0 auto 5px; display: block; flex-shrink: 0; }
+.info-label { font-size: 12px; color: #fff; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; flex-shrink: 0; }
+#page-num { font-size: 14px; color: #fff; min-width: 50px; text-align: center; flex-shrink: 0; font-weight: 600; }
+.mode-switch { width: 85%; display: flex; background: #333; border-radius: 15px; margin: 5px auto 0; padding: 2px; flex-shrink: 0; }
+.mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 6px 0; cursor: pointer; border-radius: 13px; }
+.mode-btn.active { background: #fff; color: #000; }
+#pdf-container { flex: 1; overflow: hidden; background: #111; position: relative; touch-action: none; }
+#pdf-canvas { position: absolute; top: 0; left: 0; display: block; transform-origin: 0 0; will-change: transform; }
+.audio-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 5px; flex-shrink: 0; }
+#time-text { font-size: 12px; color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.c-text { font-size: 9px; color: #444; margin: 20px 0 10px; text-align: center; width: 100%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div id="splash"><div class="splash-logo">Kei.works</div></div>
+
+<div class="main-wrapper" id="main-content">
+  <button id="toggle-btn"></button>
+  <aside id="sidebar">
+    <canvas id="clock-cvs"></canvas>
+    <div id="digital-clock">00:00:00</div>
+    <div class="sep"></div>
+    <label for="f-p" class="file-select-btn">PDF選択</label>
+    <input type="file" id="f-p" accept="application/pdf" style="display:none">
+    <div id="pdf-name" class="info-label">PDF未選択</div>
+    <div class="btn-row">
+      <button id="b-p" class="round-btn">←</button>
+      <div id="page-num">0 / 0</div>
+      <button id="n-pg" class="round-btn">→</button>
+    </div>
+    <div class="mode-switch">
+      <button id="m-free" class="mode-btn active">FREE</button>
+      <button id="m-fix" class="mode-btn">FIX</button>
+    </div>
+    <div class="sep"></div>
+    <label for="f-a" class="file-select-btn">曲選択</label>
+    <input type="file" id="f-a" accept="audio/*" style="display:none">
+    <div id="audio-name" class="info-label">曲未選択</div>
+    <div class="audio-row">
+      <button id="p-b" class="round-btn">▶</button>
+      <div id="time-text">0:00/0:00</div>
+    </div>
+    <div class="sep"></div>
+    <div class="c-text">©Kei.works</div>
+  </aside>
+
+  <main id="pdf-container">
+    <button id="fs-btn" title="全画面モード">⛶</button>
+    <canvas id="pdf-canvas"></canvas>
+  </main>
+</div>
+
+<script>
+(function(){
+  // スプラッシュ解除
+  const splash = document.getElementById('splash'), main = document.getElementById('main-content');
+  let unlocked = false;
+  function unlock() { if(!unlocked){ unlocked=true; splash.style.opacity='0'; main.style.visibility='visible'; setTimeout(()=>splash.style.display='none', 1000); } }
+  window.addEventListener('load', () => setTimeout(unlock, 1500));
+  setTimeout(unlock, 3000);
+
+  const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn'), digitalClock = document.getElementById('digital-clock');
+  let isResizing = false, currentWidth = 300;
+  let startX = 0, startTime = 0;
+
+  const closeSidebar = () => {
+    sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`;
+    setTimeout(keepInBounds, 310);
+  };
+
+  const openSidebar = () => {
+    sidebar.classList.remove('hidden'); toggleBtn.classList.remove('is-hidden');
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    toggleBtn.style.left = currentWidth + "px"; sidebar.style.marginLeft = "0";
+    setTimeout(keepInBounds, 310);
+  };
+
+  // --- 摘みの制御 (150pxで停止 + タップ判定) ---
   const startAction = (clientX) => {
     startX = clientX;
     startTime = Date.now();
@@ -6,71 +139,148 @@
     isResizing = true;
     toggleBtn.classList.add('active');
     sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
-    document.body.style.cursor = 'col-resize';
   };
 
   const doAction = (clientX) => {
     if (!isResizing) return;
     let newWidth = clientX;
-    // 150pxの壁：物理的に止める
-    if (newWidth < 150) newWidth = 150; 
+    if (newWidth < 150) newWidth = 150; // 150pxの壁
     if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
 
     currentWidth = newWidth;
     sidebar.style.width = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
     
-    // 時計の可変サイズ（3.5rem上限）
+    // 時計リサイズ
     const fontSize = Math.min(3.5, currentWidth / 80); 
     digitalClock.style.fontSize = fontSize + 'rem';
   };
 
-  const endAction = (clientX) => {
-    // clientX が undefined の場合のフォールバック
-    const endX = (clientX !== undefined) ? clientX : startX;
+  const endAction = (endX) => {
     const duration = Date.now() - startTime;
-    const moveX = Math.abs(endX - startX);
+    const moveX = Math.abs((endX || startX) - startX);
 
-    // タップ判定：10px以内の移動かつ300ms以内なら開閉
+    // タップ判定: 移動が少なく短時間なら開閉
     if (moveX < 10 && duration < 300) {
-      if (sidebar.classList.contains('hidden')) {
-        openSidebar();
-      } else {
-        closeSidebar();
-      }
+      if (sidebar.classList.contains('hidden')) openSidebar();
+      else closeSidebar();
     }
 
     isResizing = false;
     toggleBtn.classList.remove('active');
-    document.body.style.cursor = 'default';
     if (!sidebar.classList.contains('hidden')) {
-        sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-        toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+      sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+      toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
     }
     keepInBounds();
   };
 
-  // Mouse Events
+  // Mouse
   toggleBtn.addEventListener('mousedown', (e) => startAction(e.clientX));
   window.addEventListener('mousemove', (e) => doAction(e.clientX));
   window.addEventListener('mouseup', (e) => endAction(e.clientX));
 
-  // Touch Events (真っ白画面対策)
+  // Touch (真っ白画面回避)
   toggleBtn.addEventListener('touchstart', (e) => {
-    if (e.touches && e.touches[0]) {
-      startAction(e.touches[0].clientX);
-    }
+    if (e.touches && e.touches[0]) startAction(e.touches[0].clientX);
   }, {passive: false});
-
   window.addEventListener('touchmove', (e) => {
     if (isResizing && e.touches && e.touches[0]) {
       doAction(e.touches[0].clientX);
       e.preventDefault();
     }
   }, {passive: false});
-
   window.addEventListener('touchend', (e) => {
-    // changedTouches がない場合のエラーを回避
-    const touchX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : undefined;
+    const touchX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : startX;
     endAction(touchX);
   });
+
+  // --- PDF & 時計 (変更なし) ---
+  function updateClock(){
+    const d=new Date(); digitalClock.textContent=d.toTimeString().split(' ')[0];
+    const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
+    canvas.width=600; canvas.height=600; ctx.translate(300,300);
+    ctx.beginPath(); ctx.arc(0,0,280,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=6; ctx.stroke();
+    for(let i=0; i<60; i++){
+      ctx.save(); ctx.rotate(i*6*Math.PI/180); ctx.beginPath();
+      if(i%5===0){ ctx.moveTo(0,-280); ctx.lineTo(0,-250); ctx.lineWidth=6; }
+      else { ctx.moveTo(0,-280); ctx.lineTo(0,-265); ctx.lineWidth=2; }
+      ctx.strokeStyle='#fff'; ctx.stroke(); ctx.restore();
+    }
+    ctx.fillStyle='#fff'; ctx.font='bold 44px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(let i=1; i<=12; i++){ const a=(i*30-90)*(Math.PI/180); ctx.fillText(i, Math.cos(a)*215, Math.sin(a)*215); }
+    const h=(d.getHours()%12+d.getMinutes()/60)*30, m=(d.getMinutes()+d.getSeconds()/60)*6, s=d.getSeconds()*6;
+    drawHand(ctx,h,160,14,'#fff'); drawHand(ctx,m,230,10,'#fff'); drawHand(ctx,s,250,5,'#ff3b30');
+  }
+  function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
+  setInterval(updateClock, 1000); updateClock();
+
+  let doc=null, pn=1, sc=1.0, posX=0, posY=0, isFreeMode=true;
+  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
+  function updateTransform() { cvs.style.transform = `translate(${posX}px, ${posY}px) scale(${sc})`; }
+  function keepInBounds() {
+    if (!doc || !isFreeMode) return;
+    const rect = cvs.getBoundingClientRect(), contRect = container.getBoundingClientRect(), margin = 100;
+    let dx = 0, dy = 0;
+    if (rect.left > contRect.right - margin) dx = (contRect.right - margin) - rect.left;
+    if (rect.right < contRect.left + margin) dx = (contRect.left + margin) - rect.right;
+    if (rect.top > contRect.bottom - margin) dy = (contRect.bottom - margin) - rect.top;
+    if (rect.bottom < contRect.top + margin) dy = (contRect.top + margin) - rect.bottom;
+    posX += dx; posY += dy; updateTransform();
+  }
+  async function render(){
+    if(!doc) return;
+    try {
+      const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1, vp=pg.getViewport({scale:dpr*1.5});
+      cvs.width=vp.width; cvs.height=vp.height; cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
+      await pg.render({canvasContext:ctx, viewport:vp}).promise;
+      document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
+      updateTransform();
+    } catch(e){}
+  }
+  const pdfjsLib = window['pdfjs-dist/build/pdf'];
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+  document.getElementById('f-p').onchange=(e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    document.getElementById('pdf-name').textContent=f.name;
+    const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; sc=1.0; posX=0; posY=0; render(); }; r.readAsArrayBuffer(f);
+  };
+  
+  // ジェスチャー (translate)
+  let lastDist=0, lastX=0, lastY=0, isPinching=false;
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) { isPinching=true; lastDist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY); }
+    else if (e.touches.length === 1) { isPinching=false; lastX=e.touches[0].pageX; lastY=e.touches[0].pageY; }
+  }, { passive: false });
+  container.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 2 && isPinching) {
+      const dist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY);
+      const zoom=dist/lastDist; const newSc=Math.min(Math.max(sc*zoom, 0.2), 5.0);
+      const cx=(e.touches[0].pageX+e.touches[1].pageX)/2, cy=(e.touches[0].pageY+e.touches[1].pageY)/2;
+      const r=container.getBoundingClientRect(), rx=cx-r.left-posX, ry=cy-r.top-posY;
+      posX -= rx*(newSc/sc-1); posY -= ry*(newSc/sc-1); sc=newSc; lastDist=dist;
+    } else if (e.touches.length === 1 && !isPinching && isFreeMode) {
+      posX += (e.touches[0].pageX-lastX); posY += (e.touches[0].pageY-lastY);
+      lastX=e.touches[0].pageX; lastY=e.touches[0].pageY; keepInBounds();
+    }
+    updateTransform();
+  }, { passive: false });
+  container.addEventListener('touchend', () => { if(isFreeMode) keepInBounds(); });
+
+  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
+  fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; } };
+  pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
+  au.ontimeupdate=()=>{
+    const f=(t)=>{ if(!t||isNaN(t)) return "0:00"; const m=Math.floor(t/60), s=Math.floor(t%60); return m+":"+s.toString().padStart(2,'0'); };
+    document.getElementById('time-text').textContent = f(au.currentTime)+"/"+f(au.duration);
+  };
+  au.onended=()=>{ pb.textContent="▶"; }; 
+  document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
+  document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
+  document.getElementById('m-fix').onclick=()=>{isFreeMode=false;document.getElementById('m-fix').classList.add('active');document.getElementById('m-free').classList.remove('active')};
+  document.getElementById('m-free').onclick=()=>{isFreeMode=true;document.getElementById('m-free').classList.add('active');document.getElementById('m-fix').classList.remove('active')};
+})();
+</script>
+</body>
+</html>
