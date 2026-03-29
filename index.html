@@ -18,9 +18,6 @@ body { margin: 0; background: #000; color: #fff; font-family: -apple-system, san
 
 .main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; position: relative; background: #000; overflow: hidden; } 
 
-.main-wrapper:fullscreen { width: 100vw; height: 100vh; background: #000; }
-.main-wrapper:-webkit-full-screen { width: 100vw; height: 100vh; background: #000; }
-
 aside { 
   width: 300px; min-width: 150px; max-width: 80vw; height: 100vh; 
   background: #111; border-right: 1px solid #333; 
@@ -32,9 +29,12 @@ aside {
 }
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
+/* 摘みを「上」へ移動し、サイドバーの外に配置 */
 #toggle-btn {
-  position: absolute; top: 50%; left: 300px;
-  transform: translateY(-50%); z-index: 9999;
+  position: absolute; 
+  top: 15px; /* 中央(50%)ではなく「上」へ */
+  left: 300px;
+  z-index: 9999;
   width: 20px; height: 80px; 
   background: #222; border: 1px solid #444; border-left: none;
   border-radius: 0 8px 8px 0; cursor: pointer;
@@ -58,7 +58,15 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
 
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
-#digital-clock { font-size: 2.2rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
+/* デジタル時計のサイズを大きくし、Montserratを排除 */
+#digital-clock { 
+  font-size: 3.5rem; /* サイズを大きく変更 */
+  font-weight: normal; 
+  margin: 5px 0; 
+  font-variant-numeric: tabular-nums; 
+  width: 100%; text-align: center; 
+  flex-shrink: 0; 
+}
 
 .round-btn { 
   width: 42px; height: 42px; border-radius: 50%; 
@@ -132,7 +140,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 <script>
 (function(){
-  // --- 初期アニメーション ---
   const splash = document.getElementById('splash'), main = document.getElementById('main-content');
   let unlocked = false;
   function unlock() { if(!unlocked){ unlocked=true; splash.style.opacity='0'; main.style.visibility='visible'; setTimeout(()=>splash.style.display='none', 1000); } }
@@ -146,22 +153,13 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   // 全画面
   fsBtn.onclick = () => {
     const target = main; 
-    if (target.requestFullscreen) {
-      if (!document.fullscreenElement) { target.requestFullscreen(); } 
-      else { document.exitFullscreen(); }
-    } else if (target.webkitRequestFullscreen) {
-      if (!document.webkitFullscreenElement) { target.webkitRequestFullscreen(); } 
-      else { document.webkitExitFullscreen(); }
-    }
+    if (target.requestFullscreen) { if (!document.fullscreenElement) { target.requestFullscreen(); } else { document.exitFullscreen(); } }
+    else if (target.webkitRequestFullscreen) { if (!document.webkitFullscreenElement) { target.webkitRequestFullscreen(); } else { document.webkitExitFullscreen(); } }
   };
-  const updateFsBtn = () => {
-    const isFS = document.fullscreenElement || document.webkitFullscreenElement;
-    fsBtn.textContent = isFS ? "✖" : "⛶";
-  };
-  document.addEventListener('fullscreenchange', updateFsBtn);
-  document.addEventListener('webkitfullscreenchange', updateFsBtn);
+  const updateFsBtn = () => { const isFS = document.fullscreenElement || document.webkitFullscreenElement; fsBtn.textContent = isFS ? "✖" : "⛶"; };
+  document.addEventListener('fullscreenchange', updateFsBtn); document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
-  // --- サイドバー開閉 ---
+  // サイドバー開閉
   toggleBtn.onclick = (e) => {
     e.stopPropagation();
     sidebar.classList.toggle('hidden'); 
@@ -174,14 +172,12 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     setTimeout(keepInBounds, 310);
   };
 
-  // --- リサイズ機能 (150px制限付き) ---
+  // リサイズ (150px制限)
   resizer.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; });
   resizer.addEventListener('touchstart', (e) => { isResizing = true; });
   const doResize = (clientX) => {
     if (!isResizing || sidebar.classList.contains('hidden')) return;
-    // サイドバーが150pxの時、さらに左(clientXが減少)へドラッグするのを止める
     if (currentWidth <= 150 && clientX < currentWidth) return;
-    
     if (clientX >= 150 && clientX < window.innerWidth * 0.8) {
       currentWidth = clientX;
       sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
@@ -214,14 +210,10 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
 
-  // --- PDF制御（translate方式） ---
+  // PDF (translate方式)
   let doc=null, pn=1, sc=1.0, posX=0, posY=0, isFreeMode=true;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
-  
-  function updateTransform() {
-    cvs.style.transform = `translate(${posX}px, ${posY}px) scale(${sc})`;
-  }
-
+  function updateTransform() { cvs.style.transform = `translate(${posX}px, ${posY}px) scale(${sc})`; }
   function keepInBounds() {
     if (!doc || !isFreeMode) return;
     const rect = cvs.getBoundingClientRect(), contRect = container.getBoundingClientRect(), margin = 100;
@@ -232,7 +224,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if (rect.bottom < contRect.top + margin) dy = (contRect.top + margin) - rect.bottom;
     posX += dx; posY += dy; updateTransform();
   }
-
   async function render(){
     if(!doc) return;
     try {
@@ -244,11 +235,9 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       updateTransform();
     } catch(e){}
   }
-
   const btnFix = document.getElementById('m-fix'), btnFree = document.getElementById('m-free');
   btnFix.onclick = () => { isFreeMode=false; btnFix.classList.add('active'); btnFree.classList.remove('active'); };
   btnFree.onclick = () => { isFreeMode=true; btnFree.classList.add('active'); btnFix.classList.remove('active'); };
-
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   document.getElementById('f-p').onchange=(e)=>{
@@ -257,13 +246,12 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; sc=1.0; posX=0; posY=0; render(); }; r.readAsArrayBuffer(f);
   };
 
-  // --- タッチ操作（translate方式） ---
+  // タッチ (translate方式)
   let lastDist=0, lastX=0, lastY=0, isPinching=false;
   container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) { isPinching=true; lastDist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY); }
     else if (e.touches.length === 1) { isPinching=false; lastX=e.touches[0].pageX; lastY=e.touches[0].pageY; }
   }, { passive: false });
-
   container.addEventListener('touchmove', (e) => {
     e.preventDefault();
     if (e.touches.length === 2 && isPinching) {
@@ -278,10 +266,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     }
     updateTransform();
   }, { passive: false });
-
   container.addEventListener('touchend', () => { if(isFreeMode) keepInBounds(); });
 
-  // 曲再生
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
@@ -290,7 +276,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     document.getElementById('time-text').textContent = f(au.currentTime)+"/"+f(au.duration);
   };
   au.onended=()=>{ pb.textContent="▶"; }; 
-  
   document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
   document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
   window.addEventListener('resize', keepInBounds);
