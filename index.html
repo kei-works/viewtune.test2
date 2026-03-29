@@ -33,11 +33,11 @@ aside {
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 #toggle-btn {
-  position: absolute; top: 0; left: 300px; /* ②上端に移動 */
+  position: absolute; top: 20px; left: 300px; /* 少し下にずらしました */
   transform: none; z-index: 9999;
-  width: 30px; height: 60px; /* 少し幅を広げて押しやすく調整 */
+  width: 25px; height: 60px; 
   background: #222; border: 1px solid #444; border-left: none;
-  border-radius: 0 0 8px 0; cursor: pointer;
+  border-radius: 0 8px 8px 0; cursor: pointer; /* 角を上下丸くしました */
   display: flex; align-items: center; justify-content: center;
   transition: left 0.3s ease, background 0.2s;
   touch-action: auto;
@@ -58,7 +58,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
 
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
-#digital-clock { font-size: 2.8rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; } /* ①フォント拡大 */
+#digital-clock { font-size: 2.8rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
 
 .round-btn { 
   width: 42px; height: 42px; border-radius: 50%; 
@@ -99,7 +99,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <canvas id="clock-cvs"></canvas>
     <div id="digital-clock">00:00:00</div>
     <div class="sep"></div>
-    <label for="f-p" class="file-select-btn">仕業選択</label> <input type="file" id="f-p" accept="application/pdf" style="display:none">
+    <label for="f-p" class="file-select-btn">仕業選択</label>
+    <input type="file" id="f-p" accept="application/pdf" style="display:none">
     <div id="pdf-name" class="info-label">PDF未選択</div>
     <div class="btn-row">
       <button id="b-p" class="round-btn">←</button>
@@ -111,7 +112,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       <button id="m-fix" class="mode-btn">FIX</button>
     </div>
     <div class="sep"></div>
-    <label for="f-a" class="file-select-btn">放送音声選択</label> <input type="file" id="f-a" accept="audio/*" style="display:none">
+    <label for="f-a" class="file-select-btn">放送音声選択</label>
+    <input type="file" id="f-a" accept="audio/*" style="display:none">
     <div id="audio-name" class="info-label">曲未選択</div>
     <div class="audio-row">
       <button id="p-b" class="round-btn">▶</button>
@@ -130,7 +132,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 <script>
 (function(){
-  // --- 初期アニメーション（元通り） ---
+  // --- 初期アニメーション ---
   const splash = document.getElementById('splash'), main = document.getElementById('main-content');
   let unlocked = false;
   function unlock() { if(!unlocked){ unlocked=true; splash.style.opacity='0'; main.style.visibility='visible'; setTimeout(()=>splash.style.display='none', 1000); } }
@@ -141,7 +143,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const fsBtn = document.getElementById('fs-btn');
   let isResizing = false, currentWidth = 300;
 
-  // 全画面（元通り）
+  // 全画面
   fsBtn.onclick = () => {
     const target = main; 
     if (target.requestFullscreen) {
@@ -159,7 +161,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   document.addEventListener('fullscreenchange', updateFsBtn);
   document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
-  // --- サイドバー開閉とタブの同期（元通り） ---
+  // --- サイドバー開閉とタブの同期 ---
   toggleBtn.onclick = (e) => {
     e.stopPropagation();
     sidebar.classList.toggle('hidden'); 
@@ -172,7 +174,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     setTimeout(keepInBounds, 310);
   };
 
-  // --- リサイズ機能（元通り） ---
+  // --- リサイズ機能 ---
   resizer.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; });
   resizer.addEventListener('touchstart', (e) => { isResizing = true; });
   const doResize = (clientX) => {
@@ -189,7 +191,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const endResize = () => { isResizing = false; document.body.style.cursor = 'default'; sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease'; toggleBtn.style.transition = 'left 0.3s ease, background 0.2s'; keepInBounds(); };
   window.addEventListener('mouseup', endResize); window.addEventListener('touchend', endResize);
 
-  // 時計（元通り）
+  // 時計
   function updateClock(){
     const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
@@ -209,7 +211,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
 
-  // --- PDF制御（translate方式へ切り替え） ---
+  // --- PDF制御 ---
   let doc=null, pn=1, sc=1.0, posX=0, posY=0, isFreeMode=true;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
   
@@ -252,7 +254,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; sc=1.0; posX=0; posY=0; render(); }; r.readAsArrayBuffer(f);
   };
 
-  // --- タッチ操作（translate方式） ---
+  // --- タッチ操作 ---
   let lastDist=0, lastX=0, lastY=0, isPinching=false;
   container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) { isPinching=true; lastDist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY); }
@@ -276,10 +278,11 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   container.addEventListener('touchend', () => { if(isFreeMode) keepInBounds(); });
 
-  // 曲再生（元通り）
+  // 曲再生
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
-  fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; } };
+  fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
+  au.onended=()=>{ pb.textContent="▶"; };
   au.ontimeupdate=()=>{
     const f=(t)=>{ if(!t||isNaN(t)) return "0:00"; const m=Math.floor(t/60), s=Math.floor(t%60); return m+":"+s.toString().padStart(2,'0'); };
     document.getElementById('time-text').textContent = f(au.currentTime)+"/"+f(au.duration);
