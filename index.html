@@ -19,8 +19,7 @@ body { margin: 0; background: #000; color: #fff; font-family: -apple-system, san
 .main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; position: relative; background: #000; overflow: hidden; } 
 
 aside { 
-  width: 300px; min-width: 150px; /* ここが最小幅 */
-  max-width: 80vw; height: 100vh; 
+  width: 300px; min-width: 150px; max-width: 80vw; height: 100vh; 
   background: #111; border-right: 1px solid #333; 
   display: flex; flex-direction: column; align-items: center; 
   padding: 15px 10px 30px; box-sizing: border-box;
@@ -40,7 +39,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   touch-action: none; font-size: 18px; color: #fff;
 }
 
-/* 摘みのハイライト（掴んでいる時） */
 #toggle-btn:active { 
   cursor: grabbing; 
   background: #444; 
@@ -63,7 +61,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
 #digital-clock { font-size: 3.5rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
 
-/* ...その他のスタイルは維持... */
 .round-btn { width: 42px; height: 42px; border-radius: 50%; background: #ddd; color: #000; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 8px 0; flex-shrink: 0; }
 .file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 85%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin: 0 auto 5px; display: block; flex-shrink: 0; }
@@ -121,7 +118,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 <script>
 (function(){
-  // ...スプラッシュ画面制御...
   const splash = document.getElementById('splash'), main = document.getElementById('main-content');
   let unlocked = false;
   function unlock() { if(!unlocked){ unlocked=true; splash.style.opacity='0'; main.style.visibility='visible'; setTimeout(()=>splash.style.display='none', 1000); } }
@@ -132,11 +128,14 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const digitalClock = document.getElementById('digital-clock');
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
+  // アイコン更新ロジックをより詳細に
   function updateBtnIcon() {
-    if (sidebar.classList.contains('hidden')) {
+    if (sidebar.classList.contains('hidden') || toggleBtn.classList.contains('is-hidden')) {
       toggleBtn.textContent = "→";
+    } else if (currentWidth <= 150) {
+      toggleBtn.textContent = "←"; // 最小値のとき
     } else {
-      toggleBtn.textContent = "|";
+      toggleBtn.textContent = "|"; // 通常リサイズ中
     }
   }
 
@@ -155,7 +154,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const delta = x - startX;
     if (Math.abs(delta) > 5) moved = true;
 
-    // 閉じている時に右へドラッグで開く
     if (sidebar.classList.contains('hidden') && delta > 20) {
       sidebar.classList.remove('hidden');
       toggleBtn.classList.remove('is-hidden');
@@ -163,8 +161,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
     if (!sidebar.classList.contains('hidden')) {
       let newW = initialW + delta;
-
-      // 重要：150pxまではリサイズさせ、80px以下で閉じる
+      
       if (newW < 80) { 
          sidebar.classList.add('hidden');
          toggleBtn.classList.add('is-hidden');
@@ -173,9 +170,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
          return;
       }
 
-      // 150px 〜 画面の80%幅 の間で制限
       currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
-      
       sidebar.style.width = currentWidth + 'px';
       sidebar.style.minWidth = currentWidth + 'px';
       toggleBtn.style.left = currentWidth + 'px';
@@ -223,7 +218,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('mouseup', finishDrag);
   window.addEventListener('touchend', finishDrag);
 
-  // ...時計とPDFレンダリングのロジックは維持...
+  // ...時計とPDF関連の既存コードはそのまま...
   function updateClock(){
     const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
