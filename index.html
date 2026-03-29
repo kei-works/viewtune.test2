@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Final</title>
+<title>Kei.works ViewTune Final-Logic-Merged</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -123,24 +123,20 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn');
   const digitalClock = document.getElementById('digital-clock');
+  
+  // --- 【ここから】摘みのロジック（テスト2を完全継承） ---
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
   function updateBtnIcon() {
-    if (sidebar.classList.contains('hidden')) {
-      toggleBtn.textContent = "→";
-    } else if (isResizing) {
-      toggleBtn.textContent = "|";
-    } else if (currentWidth <= 155) {
-      toggleBtn.textContent = "←"; 
-    } else {
-      toggleBtn.textContent = "|"; 
-    }
+    if (sidebar.classList.contains('hidden')) { toggleBtn.textContent = "→"; } 
+    else if (isResizing) { toggleBtn.textContent = "|"; } 
+    else if (currentWidth <= 155) { toggleBtn.textContent = "←"; } 
+    else { toggleBtn.textContent = "|"; }
   }
 
   const startDrag = (e) => {
     if (sidebar.classList.contains('hidden')) return;
-    isResizing = true;
-    moved = false;
+    isResizing = true; moved = false;
     startX = e.clientX || e.touches[0].clientX;
     initialW = currentWidth;
     toggleBtn.classList.add('is-active');
@@ -169,8 +165,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     sidebar.style.width = currentWidth + 'px';
     sidebar.style.minWidth = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
-    const newFontSize = Math.min(3.5, currentWidth / 85);
-    digitalClock.style.fontSize = newFontSize + 'rem';
+    digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
   };
 
   const finishDrag = () => {
@@ -179,24 +174,12 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     toggleBtn.classList.remove('is-active');
     toggleBtn.style.transition = 'left 0.3s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s';
     sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease, min-width 0.3s ease';
-    
-    if (sidebar.classList.contains('hidden')) {
-      toggleBtn.style.left = "0px";
-      sidebar.style.marginLeft = `-${currentWidth}px`;
-    } else {
-      toggleBtn.style.left = currentWidth + 'px';
-      sidebar.style.marginLeft = "0";
-    }
     updateBtnIcon();
   };
 
   toggleBtn.onclick = () => {
     const isHidden = sidebar.classList.contains('hidden');
-    if (moved && !isHidden) {
-      moved = false; 
-      return;
-    }
-
+    if (moved && !isHidden) return;
     if (!isHidden && currentWidth <= 155) {
       sidebar.classList.add('hidden');
       toggleBtn.classList.add('is-hidden');
@@ -204,7 +187,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       const willOpen = sidebar.classList.contains('hidden');
       sidebar.classList.toggle('hidden');
       toggleBtn.classList.toggle('is-hidden');
-
       if (willOpen) {
         currentWidth = 200;
         sidebar.style.width = currentWidth + 'px';
@@ -212,14 +194,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
         digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
       }
     }
-
-    if (sidebar.classList.contains('hidden')) {
-      toggleBtn.style.left = "0px";
-      sidebar.style.marginLeft = `-${currentWidth}px`;
-    } else {
-      toggleBtn.style.left = currentWidth + 'px';
-      sidebar.style.marginLeft = "0";
-    }
+    toggleBtn.style.left = sidebar.classList.contains('hidden') ? "0px" : currentWidth + 'px';
+    sidebar.style.marginLeft = sidebar.classList.contains('hidden') ? `-${currentWidth}px` : "0";
     moved = false;
     updateBtnIcon();
   };
@@ -230,6 +206,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('touchmove', doDrag, {passive: false});
   window.addEventListener('mouseup', finishDrag);
   window.addEventListener('touchend', finishDrag);
+  // --- 【ここまで】摘みのロジック ---
 
   // --- Clock ---
   function updateClock(){
@@ -251,48 +228,42 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
 
-  // --- PDF ---
-  let doc=null, pn=1, sc=1.0, posX=0, posY=0, isFreeMode=true;
-  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
+  // --- 【完全復元】PDF ヌルサクロジック ---
+  let doc=null, pn=1;
+  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d');
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   
-  function updateTransform() { cvs.style.transform = `translate(${posX}px, ${posY}px) scale(${sc})`; }
+  document.getElementById('f-p').onchange=(e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    document.getElementById('pdf-name').textContent=f.name;
+    const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; render(); }; r.readAsArrayBuffer(f);
+  };
+  
   async function render(){
     if(!doc) return;
     const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1, vp=pg.getViewport({scale:dpr*1.5});
     cvs.width=vp.width; cvs.height=vp.height; cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
     await pg.render({canvasContext:ctx, viewport:vp}).promise;
     document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
-    updateTransform();
   }
-  document.getElementById('f-p').onchange=(e)=>{
-    const f=e.target.files[0]; if(!f) return;
-    document.getElementById('pdf-name').textContent=f.name;
-    const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; render(); }; r.readAsArrayBuffer(f);
-  };
+  
   document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
   document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
 
-  // --- Audio ---
+  // Audio / Fullscreen
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
-  
-  // --- Fullscreen ---
   const fsBtn = document.getElementById('fs-btn');
   fsBtn.onclick = () => {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      if (main.requestFullscreen) main.requestFullscreen();
-      else if (main.webkitRequestFullscreen) main.webkitRequestFullscreen();
+      if (main.requestFullscreen) main.requestFullscreen(); else if (main.webkitRequestFullscreen) main.webkitRequestFullscreen();
     } else {
-      if (document.exitFullscreen) document.exitFullscreen();
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     }
   };
   document.addEventListener('fullscreenchange', () => { fsBtn.textContent = document.fullscreenElement ? "✖" : "⛶"; });
-  document.addEventListener('webkitfullscreenchange', () => { fsBtn.textContent = document.webkitFullscreenElement ? "✖" : "⛶"; });
-
   updateBtnIcon();
 })();
 </script>
