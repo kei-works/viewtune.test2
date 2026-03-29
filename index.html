@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Handle-Fix</title>
+<title>Kei.works ViewTune.test2 </title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -39,7 +39,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   touch-action: none; font-size: 18px; color: #fff;
 }
 
-/* スマホでも維持されるハイライト用のクラス */
 #toggle-btn.is-active { 
   background: #444 !important; 
   border-color: #fff !important; 
@@ -129,10 +128,10 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
   function updateBtnIcon() {
-    if (sidebar.classList.contains('hidden') || toggleBtn.classList.contains('is-hidden')) {
+    if (sidebar.classList.contains('hidden')) {
       toggleBtn.textContent = "→";
     } else if (isResizing) {
-      toggleBtn.textContent = "|"; // 掴んでリサイズ中は常に「|」
+      toggleBtn.textContent = "|";
     } else if (currentWidth <= 155) {
       toggleBtn.textContent = "←"; 
     } else {
@@ -141,56 +140,47 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }
 
   const startDrag = (e) => {
+    // 【重要】閉じている時はドラッグを許可しない
+    if (sidebar.classList.contains('hidden')) return;
+
     isResizing = true;
     moved = false;
     startX = e.clientX || e.touches[0].clientX;
     initialW = currentWidth;
     
-    // ハイライトクラス追加
     toggleBtn.classList.add('is-active');
-    
     toggleBtn.style.transition = 'none';
     sidebar.style.transition = 'none';
     updateBtnIcon();
   };
 
   const doDrag = (e) => {
-    if (!isResizing) return;
+    if (!isResizing || sidebar.classList.contains('hidden')) return;
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
     if (Math.abs(delta) > 5) moved = true;
 
-    if (sidebar.classList.contains('hidden') && delta > 20) {
-      sidebar.classList.remove('hidden');
-      toggleBtn.classList.remove('is-hidden');
+    let newW = initialW + delta;
+    if (newW < 80) { 
+       sidebar.classList.add('hidden');
+       toggleBtn.classList.add('is-hidden');
+       toggleBtn.style.left = "0px";
+       updateBtnIcon();
+       return;
     }
-
-    if (!sidebar.classList.contains('hidden')) {
-      let newW = initialW + delta;
-      if (newW < 80) { 
-         sidebar.classList.add('hidden');
-         toggleBtn.classList.add('is-hidden');
-         toggleBtn.style.left = "0px";
-         updateBtnIcon();
-         return;
-      }
-      currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
-      sidebar.style.width = currentWidth + 'px';
-      sidebar.style.minWidth = currentWidth + 'px';
-      toggleBtn.style.left = currentWidth + 'px';
-      
-      const newFontSize = Math.min(3.5, currentWidth / 85);
-      digitalClock.style.fontSize = newFontSize + 'rem';
-    }
+    currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
+    sidebar.style.width = currentWidth + 'px';
+    sidebar.style.minWidth = currentWidth + 'px';
+    toggleBtn.style.left = currentWidth + 'px';
+    
+    const newFontSize = Math.min(3.5, currentWidth / 85);
+    digitalClock.style.fontSize = newFontSize + 'rem';
   };
 
   const finishDrag = () => {
     if (!isResizing) return;
     isResizing = false;
-    
-    // ハイライトクラス削除
     toggleBtn.classList.remove('is-active');
-    
     toggleBtn.style.transition = 'left 0.3s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s';
     sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
     
@@ -251,7 +241,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
 
-  let doc=null, pn=1, sc=1.0, posX=0, posY=0;
+  let doc=null, pn=1;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d');
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
