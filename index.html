@@ -33,11 +33,11 @@ aside {
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 #toggle-btn {
-  position: absolute; top: 50%; left: 300px;
-  transform: translateY(-50%); z-index: 9999;
-  width: 20px; height: 80px; 
+  position: absolute; top: 0; left: 300px; /* ②上端に移動 */
+  transform: none; z-index: 9999;
+  width: 30px; height: 60px; /* 少し幅を広げて押しやすく調整 */
   background: #222; border: 1px solid #444; border-left: none;
-  border-radius: 0 8px 8px 0; cursor: pointer;
+  border-radius: 0 0 8px 0; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: left 0.3s ease, background 0.2s;
   touch-action: auto;
@@ -58,7 +58,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
 
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
-#digital-clock { font-size: 2.2rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
+#digital-clock { font-size: 2.8rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; } /* ①フォント拡大 */
 
 .round-btn { 
   width: 42px; height: 42px; border-radius: 50%; 
@@ -99,8 +99,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <canvas id="clock-cvs"></canvas>
     <div id="digital-clock">00:00:00</div>
     <div class="sep"></div>
-    <label for="f-p" class="file-select-btn">PDF選択</label>
-    <input type="file" id="f-p" accept="application/pdf" style="display:none">
+    <label for="f-p" class="file-select-btn">仕業選択</label> <input type="file" id="f-p" accept="application/pdf" style="display:none">
     <div id="pdf-name" class="info-label">PDF未選択</div>
     <div class="btn-row">
       <button id="b-p" class="round-btn">←</button>
@@ -112,8 +111,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       <button id="m-fix" class="mode-btn">FIX</button>
     </div>
     <div class="sep"></div>
-    <label for="f-a" class="file-select-btn">曲選択</label>
-    <input type="file" id="f-a" accept="audio/*" style="display:none">
+    <label for="f-a" class="file-select-btn">放送音声選択</label> <input type="file" id="f-a" accept="audio/*" style="display:none">
     <div id="audio-name" class="info-label">曲未選択</div>
     <div class="audio-row">
       <button id="p-b" class="round-btn">▶</button>
