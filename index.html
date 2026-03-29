@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune.test2</title>
+<title>Kei.works ViewTune Original-PDF-Fix</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -24,7 +24,7 @@ aside {
   display: flex; flex-direction: column; align-items: center; 
   padding: 15px 10px 30px; box-sizing: border-box;
   overflow-y: auto; overflow-x: hidden; z-index: 1000;
-  transition: transform 0.3s ease, margin-left 0.3s ease; /* widthのtransitionを削除して高速化 */
+  transition: transform 0.3s ease, margin-left 0.3s ease;
   flex-shrink: 0;
 }
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
@@ -39,12 +39,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   touch-action: none; font-size: 18px; color: #fff;
 }
 
-#toggle-btn.is-active { 
-  background: #444 !important; 
-  border-color: #fff !important; 
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4) !important;
-}
-
+#toggle-btn.is-active { background: #444 !important; border-color: #fff !important; box-shadow: 0 0 12px rgba(255, 255, 255, 0.4) !important; }
 #toggle-btn.is-hidden { left: 0 !important; border-left: 1px solid #444; border-radius: 0 8px 8px 0; }
 
 #fs-btn {
@@ -86,7 +81,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="sep"></div>
     <label for="f-p" class="file-select-btn">仕業選択</label>
     <input type="file" id="f-p" accept="application/pdf" style="display:none">
-    <div id="pdf-name" class="info-label">仕業未選択</div>
+    <div id="pdf-name" class="info-label">PDF未選択</div>
     <div class="btn-row">
       <button id="b-p" class="round-btn">←</button>
       <div id="page-num">0 / 0</div>
@@ -99,7 +94,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="sep"></div>
     <label for="f-a" class="file-select-btn">放送音声選択</label>
     <input type="file" id="f-a" accept="audio/*" style="display:none">
-    <div id="audio-name" class="info-label">音声未選択</div>
+    <div id="audio-name" class="info-label">曲未選択</div>
     <div class="audio-row">
       <button id="p-b" class="round-btn">▶</button>
       <div id="time-text">0:00/0:00</div>
@@ -127,21 +122,15 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
   function updateBtnIcon() {
-    if (sidebar.classList.contains('hidden')) {
-      toggleBtn.textContent = "→";
-    } else if (isResizing) {
-      toggleBtn.textContent = "|";
-    } else if (currentWidth <= 155) {
-      toggleBtn.textContent = "←"; 
-    } else {
-      toggleBtn.textContent = "|"; 
-    }
+    if (sidebar.classList.contains('hidden')) { toggleBtn.textContent = "→"; } 
+    else if (isResizing) { toggleBtn.textContent = "|"; } 
+    else if (currentWidth <= 155) { toggleBtn.textContent = "←"; } 
+    else { toggleBtn.textContent = "|"; }
   }
 
   const startDrag = (e) => {
-    if (sidebar.classList.contains('hidden')) return;
-    isResizing = true;
-    moved = false;
+    if (sidebar.classList.contains('hidden')) return; // 閉じている時は掴めない
+    isResizing = true; moved = false;
     startX = e.clientX || e.touches[0].clientX;
     initialW = currentWidth;
     toggleBtn.classList.add('is-active');
@@ -155,22 +144,16 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
     if (Math.abs(delta) > 5) moved = true;
-
     let newW = initialW + delta;
     if (newW < 80) { 
-       sidebar.classList.add('hidden');
-       toggleBtn.classList.add('is-hidden');
-       toggleBtn.style.left = "0px";
-       isResizing = false;
-       updateBtnIcon();
-       return;
+       sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
+       toggleBtn.style.left = "0px"; isResizing = false; updateBtnIcon(); return;
     }
     currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
     sidebar.style.width = currentWidth + 'px';
     sidebar.style.minWidth = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
-    const newFontSize = Math.min(3.5, currentWidth / 85);
-    digitalClock.style.fontSize = newFontSize + 'rem';
+    digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
   };
 
   const finishDrag = () => {
@@ -179,7 +162,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     toggleBtn.classList.remove('is-active');
     toggleBtn.style.transition = 'left 0.3s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s';
     sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    
     if (sidebar.classList.contains('hidden')) {
       toggleBtn.style.left = "0px";
       sidebar.style.marginLeft = `-${currentWidth}px`;
@@ -193,42 +175,21 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   toggleBtn.onclick = () => {
     const isHidden = sidebar.classList.contains('hidden');
     if (moved && !isHidden) return;
-
-    // クリック時のみ、一瞬だけ transition を有効にする
-    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease, min-width 0.3s ease';
-
     if (!isHidden && currentWidth <= 155) {
-      sidebar.classList.add('hidden');
-      toggleBtn.classList.add('is-hidden');
+      sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
     } else {
       const willOpen = isHidden;
-      sidebar.classList.toggle('hidden');
-      toggleBtn.classList.toggle('is-hidden');
-
-      if (willOpen) {
+      sidebar.classList.toggle('hidden'); toggleBtn.classList.toggle('is-hidden');
+      if (willOpen) { // →から開くときは200pxに
         currentWidth = 200;
         sidebar.style.width = currentWidth + 'px';
         sidebar.style.minWidth = currentWidth + 'px';
-        const newFontSize = Math.min(3.5, currentWidth / 85);
-        digitalClock.style.fontSize = newFontSize + 'rem';
+        digitalClock.style.fontSize = Math.min(3.5, currentWidth / 85) + 'rem';
       }
     }
-
-    if (sidebar.classList.contains('hidden')) {
-      toggleBtn.style.left = "0px";
-      sidebar.style.marginLeft = `-${currentWidth}px`;
-    } else {
-      toggleBtn.style.left = currentWidth + 'px';
-      sidebar.style.marginLeft = "0";
-    }
-
-    // 次の操作のために transition を戻す
-    setTimeout(() => {
-      if (!isResizing) sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    }, 300);
-
-    moved = false;
-    updateBtnIcon();
+    if (sidebar.classList.contains('hidden')) { toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`; } 
+    else { toggleBtn.style.left = currentWidth + 'px'; sidebar.style.marginLeft = "0"; }
+    moved = false; updateBtnIcon();
   };
 
   toggleBtn.addEventListener('mousedown', startDrag);
@@ -238,7 +199,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('mouseup', finishDrag);
   window.addEventListener('touchend', finishDrag);
 
-  // --- Clock & PDF ---
+  // --- Clock ---
   function updateClock(){
     const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
@@ -258,27 +219,47 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
 
+  // --- PDF (最初のヌルサク動作ロジックに完全復旧) ---
   let doc=null, pn=1;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d');
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+  
   document.getElementById('f-p').onchange=(e)=>{
     const f=e.target.files[0]; if(!f) return;
     document.getElementById('pdf-name').textContent=f.name;
-    const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; render(); }; r.readAsArrayBuffer(f);
+    const r=new FileReader(); 
+    r.onload=async function(){ 
+      const data=new Uint8Array(this.result);
+      doc=await pdfjsLib.getDocument({data}).promise; 
+      pn=1; render(); 
+    }; 
+    r.readAsArrayBuffer(f);
   };
+  
   async function render(){
     if(!doc) return;
-    const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1, vp=pg.getViewport({scale:dpr*1.5});
-    cvs.width=vp.width; cvs.height=vp.height; cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
+    const pg=await doc.getPage(pn); 
+    const dpr=window.devicePixelRatio||1;
+    const vp=pg.getViewport({scale:dpr*1.5});
+    cvs.width=vp.width; cvs.height=vp.height; 
+    cvs.style.width=(vp.width/dpr)+'px'; 
+    cvs.style.height=(vp.height/dpr)+'px';
     await pg.render({canvasContext:ctx, viewport:vp}).promise;
     document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
   }
-  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
-  fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
-  pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
+  
   document.getElementById('b-p').onclick=()=>{if(doc&&pn>1){pn--;render()}};
   document.getElementById('n-pg').onclick=()=>{if(doc&&pn<doc.numPages){pn++;render()}};
+
+  // --- Audio ---
+  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a'), tt=document.getElementById('time-text');
+  function fmt(s){ if(!s||isNaN(s)) return "0:00"; const m=Math.floor(s/60); s=Math.floor(s%60); return m+":"+(s<10?"0":"")+s; }
+  fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
+  pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
+  au.ontimeupdate=()=>{ tt.textContent=fmt(au.currentTime)+"/"+fmt(au.duration); };
+  au.onended=()=>{ pb.textContent="▶"; };
+
   updateBtnIcon();
 })();
 </script>
