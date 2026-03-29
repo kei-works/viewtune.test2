@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune.test2</title>
+<title>Kei.works ViewTune Original-Recovered</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -61,7 +61,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="sep"></div>
     <label for="f-p" class="file-select-btn">仕業選択</label>
     <input type="file" id="f-p" accept="application/pdf" style="display:none">
-    <div id="pdf-name" class="info-label">仕業未選択</div>
+    <div id="pdf-name" class="info-label">PDF未選択</div>
     <div class="btn-row">
       <button id="b-p" class="round-btn">←</button>
       <div id="page-num">0 / 0</div>
@@ -74,7 +74,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="sep"></div>
     <label for="f-a" class="file-select-btn">放送音声選択</label>
     <input type="file" id="f-a" accept="audio/*" style="display:none">
-    <div id="audio-name" class="info-label">音声未選択</div>
+    <div id="audio-name" class="info-label">曲未選択</div>
     <div class="audio-row">
       <button id="p-b" class="round-btn">▶</button>
       <div id="time-text">0:00/0:00</div>
@@ -116,7 +116,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
     
-    // 150pxの時、さらに縮める動き(delta < 0)だけを無視。広げる・クリックは可能。
+    // 150pxの時に左へ縮める動きだけ制限。右広げ・クリックは有効。
     if (currentWidth <= 150 && delta < 0) return;
 
     if (Math.abs(delta) > 5) moved = true;
@@ -192,7 +192,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if (!doc) return;
     const pg = await doc.getPage(pn);
     const dpr = window.devicePixelRatio || 1;
-    // --- ヌルサク復旧設定 ---
     const vp = pg.getViewport({scale: dpr * 1.5});
     cvs.width = vp.width; cvs.height = vp.height;
     cvs.style.width = (vp.width / dpr) + 'px';
