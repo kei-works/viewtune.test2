@@ -58,7 +58,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
 
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
-#digital-clock { font-size: 2.8rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
+#digital-clock { font-size: 3.5rem; font-weight: normal; margin: 5px 0; font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; }
 
 .round-btn { 
   width: 42px; height: 42px; border-radius: 50%; 
@@ -186,8 +186,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       sidebar.style.width = currentWidth + 'px'; sidebar.style.minWidth = currentWidth + 'px';
       toggleBtn.style.left = currentWidth + 'px';
       
-      // 時計フォントサイズの動的調整（ここを追加）
-      const newFontSize = Math.min(2.8, currentWidth / 100);
+      // 時計フォントサイズの動的調整（最大3.5rem）
+      const newFontSize = Math.min(3.5, currentWidth / 85);
       digitalClock.style.fontSize = newFontSize + 'rem';
     }
   };
