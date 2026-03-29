@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Final-Icon-Fixed</title>
+<title>Kei.works ViewTune Audio-Fixed</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -124,15 +124,12 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn');
   const digitalClock = document.getElementById('digital-clock');
   
-  // --- 摘みのロジック（アイコン固定版） ---
+  // --- 摘みのロジック（スライド最小150px、タップ開閉、アイコン固定） ---
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
   function updateBtnIcon() {
-    if (sidebar.classList.contains('hidden')) { 
-      toggleBtn.textContent = "→"; // 閉じている時だけ「開く」アイコン
-    } else {
-      toggleBtn.textContent = "|"; // 開いている時は幅に関わらず「｜」
-    }
+    if (sidebar.classList.contains('hidden')) { toggleBtn.textContent = "→"; } 
+    else { toggleBtn.textContent = "|"; }
   }
 
   const startDrag = (e) => {
@@ -151,10 +148,8 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
     if (Math.abs(delta) > 5) moved = true;
-
     let newW = initialW + delta;
     currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
-    
     sidebar.style.width = currentWidth + 'px';
     sidebar.style.minWidth = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
@@ -174,7 +169,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   toggleBtn.onclick = () => {
     const isHidden = sidebar.classList.contains('hidden');
     if (moved && !isHidden) { moved = false; return; }
-
     if (!isHidden && currentWidth <= 155) {
       sidebar.classList.add('hidden');
       toggleBtn.classList.add('is-hidden');
@@ -282,10 +276,40 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }, { passive: false });
   container.addEventListener('touchend', () => { if(isFreeMode) keepInBounds(); });
 
-  // Audio / Fullscreen
-  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
-  fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
-  pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
+  // --- オーディオ機能（時間表示修正版） ---
+  const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a'), tt=document.getElementById('time-text');
+  
+  function fmtTime(s) {
+    if (isNaN(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const rs = Math.floor(s % 60);
+    return `${m}:${rs < 10 ? '0' : ''}${rs}`;
+  }
+
+  function updateAudioTime() {
+    tt.textContent = `${fmtTime(au.currentTime)} / ${fmtTime(au.duration)}`;
+  }
+
+  fa.onchange=(e)=>{ 
+    if(e.target.files[0]) { 
+      au.src=URL.createObjectURL(e.target.files[0]); 
+      document.getElementById('audio-name').textContent=e.target.files[0].name; 
+      pb.textContent="▶";
+      au.onloadedmetadata = updateAudioTime; // メタデータ読み込み完了時に時間を表示
+    } 
+  };
+  
+  pb.onclick=()=>{ 
+    if(au.src){ 
+      if(au.paused){ au.play(); pb.textContent="||"; } 
+      else { au.pause(); pb.textContent="▶"; } 
+    } 
+  };
+
+  au.ontimeupdate = updateAudioTime; // 再生中に時間を更新
+  au.onended = () => { pb.textContent = "▶"; au.currentTime = 0; };
+
+  // Fullscreen
   const fsBtn = document.getElementById('fs-btn');
   fsBtn.onclick = () => {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
