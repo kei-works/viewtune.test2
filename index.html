@@ -24,7 +24,7 @@ aside {
   display: flex; flex-direction: column; align-items: center; 
   padding: 15px 10px 30px; box-sizing: border-box;
   overflow-y: auto; overflow-x: hidden; z-index: 1000;
-  transition: transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease, min-width 0.3s ease;
+  transition: transform 0.3s ease, margin-left 0.3s ease; /* widthのtransitionを削除して高速化 */
   flex-shrink: 0;
 }
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
@@ -99,7 +99,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     <div class="sep"></div>
     <label for="f-a" class="file-select-btn">放送音声選択</label>
     <input type="file" id="f-a" accept="audio/*" style="display:none">
-    <div id="audio-name" class="info-label"音声未選択</div>
+    <div id="audio-name" class="info-label">音声未選択</div>
     <div class="audio-row">
       <button id="p-b" class="round-btn">▶</button>
       <div id="time-text">0:00/0:00</div>
@@ -178,7 +178,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     isResizing = false;
     toggleBtn.classList.remove('is-active');
     toggleBtn.style.transition = 'left 0.3s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s';
-    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease, min-width 0.3s ease';
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
     
     if (sidebar.classList.contains('hidden')) {
       toggleBtn.style.left = "0px";
@@ -194,15 +194,17 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const isHidden = sidebar.classList.contains('hidden');
     if (moved && !isHidden) return;
 
+    // クリック時のみ、一瞬だけ transition を有効にする
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease, width 0.3s ease, min-width 0.3s ease';
+
     if (!isHidden && currentWidth <= 155) {
       sidebar.classList.add('hidden');
       toggleBtn.classList.add('is-hidden');
     } else {
-      const willOpen = sidebar.classList.contains('hidden');
+      const willOpen = isHidden;
       sidebar.classList.toggle('hidden');
       toggleBtn.classList.toggle('is-hidden');
 
-      // 閉じている状態から開く時だけ200pxにする
       if (willOpen) {
         currentWidth = 200;
         sidebar.style.width = currentWidth + 'px';
@@ -219,6 +221,12 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       toggleBtn.style.left = currentWidth + 'px';
       sidebar.style.marginLeft = "0";
     }
+
+    // 次の操作のために transition を戻す
+    setTimeout(() => {
+      if (!isResizing) sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    }, 300);
+
     moved = false;
     updateBtnIcon();
   };
