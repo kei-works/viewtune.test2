@@ -46,7 +46,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 }
 
 #toggle-btn.is-hidden { left: 0 !important; border-left: 1px solid #444; border-radius: 0 8px 8px 0; }
-#toggle-btn.is-hidden.is-active { border-left-color: #fff; }
 
 #fs-btn {
   position: absolute; top: 15px; right: 15px; z-index: 150;
@@ -140,7 +139,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }
 
   const startDrag = (e) => {
-    // 【重要】閉じている時はドラッグを許可しない
+    // 閉じている時はドラッグ開始を完全にブロック
     if (sidebar.classList.contains('hidden')) return;
 
     isResizing = true;
@@ -155,7 +154,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   };
 
   const doDrag = (e) => {
-    if (!isResizing || sidebar.classList.contains('hidden')) return;
+    if (!isResizing) return;
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
     if (Math.abs(delta) > 5) moved = true;
@@ -165,6 +164,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
        sidebar.classList.add('hidden');
        toggleBtn.classList.add('is-hidden');
        toggleBtn.style.left = "0px";
+       isResizing = false; // ドラッグ強制終了
        updateBtnIcon();
        return;
     }
@@ -195,8 +195,11 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   };
 
   toggleBtn.onclick = () => {
-    if (moved) return;
     const isHidden = sidebar.classList.contains('hidden');
+    
+    // ドラッグ中に誤爆しないためのガードだが、閉じている時は強制発動
+    if (moved && !isHidden) return;
+
     if (!isHidden && currentWidth <= 155) {
       sidebar.classList.add('hidden');
       toggleBtn.classList.add('is-hidden');
@@ -204,6 +207,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       sidebar.classList.toggle('hidden');
       toggleBtn.classList.toggle('is-hidden');
     }
+
     if (sidebar.classList.contains('hidden')) {
       toggleBtn.style.left = "0px";
       sidebar.style.marginLeft = `-${currentWidth}px`;
@@ -211,6 +215,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       toggleBtn.style.left = currentWidth + 'px';
       sidebar.style.marginLeft = "0";
     }
+    moved = false; // 状態リセット
     updateBtnIcon();
   };
 
