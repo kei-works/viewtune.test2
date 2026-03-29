@@ -19,7 +19,8 @@ body { margin: 0; background: #000; color: #fff; font-family: -apple-system, san
 .main-wrapper { display: flex; width: 100vw; height: 100vh; visibility: hidden; position: relative; background: #000; overflow: hidden; } 
 
 aside { 
-  width: 300px; min-width: 150px; max-width: 80vw; height: 100vh; 
+  width: 300px; min-width: 0; /* 150px制限はJSで制御し、閉じるために0を許容 */
+  max-width: 80vw; height: 100vh; 
   background: #111; border-right: 1px solid #333; 
   display: flex; flex-direction: column; align-items: center; 
   padding: 15px 10px 30px; box-sizing: border-box;
@@ -29,7 +30,6 @@ aside {
 }
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
-/* 摘みを「上」へ。そして「掴んだ時のハイライト」用のスタイル */
 #toggle-btn {
   position: absolute; top: 15px; left: 300px; z-index: 9999;
   width: 20px; height: 80px; 
@@ -39,11 +39,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   transition: left 0.3s ease, background 0.2s, box-shadow 0.2s;
   touch-action: none;
 }
-/* 掴んだ（アクティブな）時のハイライト */
-#toggle-btn.active {
-  background: #444;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
-}
+#toggle-btn.active { background: #444; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
 #toggle-btn::after { content: ""; width: 2px; height: 20px; background: #fff; border-radius: 2px; }
 #toggle-btn.is-hidden { left: 0 !important; cursor: pointer; }
 
@@ -55,38 +51,29 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   display: flex; align-items: center; justify-content: center;
 }
 
-.sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
-
 #clock-cvs { width: 90%; height: auto; aspect-ratio: 1/1; max-width: 600px; flex-shrink: 0; }
+/* デジタル時計: サイドバー幅に合わせて可変 */
 #digital-clock { 
-  font-size: 3.5rem; /* あなたが指定した特大サイズ */
+  font-size: 3.5rem; 
   font-weight: normal; margin: 5px 0; 
-  font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0; 
+  font-variant-numeric: tabular-nums; width: 100%; text-align: center; flex-shrink: 0;
+  white-space: nowrap;
 }
 
-.round-btn { 
-  width: 42px; height: 42px; border-radius: 50%; 
-  background: #ddd; color: #000; border: none; 
-  font-size: 18px; font-weight: 700; cursor: pointer; 
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0; 
-}
+.sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
+.round-btn { width: 42px; height: 42px; border-radius: 50%; background: #ddd; color: #000; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .btn-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin: 8px 0; flex-shrink: 0; }
-
 .file-select-btn { cursor: pointer; background: #ddd; color: #000; padding: 7px 0; width: 85%; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin: 0 auto 5px; display: block; flex-shrink: 0; }
 .info-label { font-size: 12px; color: #fff; text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 5px; flex-shrink: 0; }
 #page-num { font-size: 14px; color: #fff; min-width: 50px; text-align: center; flex-shrink: 0; font-weight: 600; }
-
 .mode-switch { width: 85%; display: flex; background: #333; border-radius: 15px; margin: 5px auto 0; padding: 2px; flex-shrink: 0; }
 .mode-btn { flex: 1; border: none; background: none; color: #888; font-size: 10px; font-weight: 700; padding: 6px 0; cursor: pointer; border-radius: 13px; }
 .mode-btn.active { background: #fff; color: #000; }
-
-.c-text { font-size: 9px; color: #444; margin: 20px 0 10px; text-align: center; width: 100%; flex-shrink: 0; }
-
 #pdf-container { flex: 1; overflow: hidden; background: #111; position: relative; touch-action: none; }
 #pdf-canvas { position: absolute; top: 0; left: 0; display: block; transform-origin: 0 0; will-change: transform; }
-
 .audio-row { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 5px; flex-shrink: 0; }
 #time-text { font-size: 12px; color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.c-text { font-size: 9px; color: #444; margin: 20px 0 10px; text-align: center; width: 100%; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -95,7 +82,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 <div class="main-wrapper" id="main-content">
   <button id="toggle-btn"></button>
-  
   <aside id="sidebar">
     <canvas id="clock-cvs"></canvas>
     <div id="digital-clock">00:00:00</div>
@@ -138,73 +124,84 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('load', () => setTimeout(unlock, 1500));
   setTimeout(unlock, 3000);
 
-  const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn');
+  const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn'), digitalClock = document.getElementById('digital-clock');
   const fsBtn = document.getElementById('fs-btn');
-  let isResizing = false, currentWidth = 300, startX = 0;
+  let isResizing = false, currentWidth = 300, hasMoved = false;
 
+  // 全画面
   fsBtn.onclick = () => {
     const target = main; 
     if (target.requestFullscreen) { if (!document.fullscreenElement) { target.requestFullscreen(); } else { document.exitFullscreen(); } }
     else if (target.webkitRequestFullscreen) { if (!document.webkitFullscreenElement) { target.webkitRequestFullscreen(); } else { document.webkitExitFullscreen(); } }
   };
-  const updateFsBtn = () => { const isFS = document.fullscreenElement || document.webkitFullscreenElement; fsBtn.textContent = isFS ? "✖" : "⛶"; };
-  document.addEventListener('fullscreenchange', updateFsBtn); document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
-  // --- 摘み（リサイザー）の制御 ---
+  const closeSidebar = () => {
+    sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`;
+    setTimeout(keepInBounds, 310);
+  };
+
+  const openSidebar = () => {
+    sidebar.classList.remove('hidden'); toggleBtn.classList.remove('is-hidden');
+    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
+    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    toggleBtn.style.left = currentWidth + "px"; sidebar.style.marginLeft = "0";
+    setTimeout(keepInBounds, 310);
+  };
+
+  // --- 摘み（リサイザー）制御：150pxで閉じるロジック & 時計リサイズ ---
   const startAction = (clientX) => {
-    if (sidebar.classList.contains('hidden')) return; // 閉じている時はクリック待ち
-    isResizing = true;
-    startX = clientX;
-    toggleBtn.classList.add('active'); // 掴んだ時のハイライト
-    sidebar.style.transition = 'none';
-    toggleBtn.style.transition = 'none';
+    if (sidebar.classList.contains('hidden')) return; 
+    isResizing = true; hasMoved = false;
+    toggleBtn.classList.add('active');
+    sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
     document.body.style.cursor = 'col-resize';
   };
 
   const doAction = (clientX) => {
     if (!isResizing) return;
-    // 150px制限: 左へ行こうとするのを止める
-    if (currentWidth <= 150 && clientX < currentWidth) return;
+    hasMoved = true;
+    
+    // 150px以下になろうとしたら閉じる判定
+    if (clientX < 100) { 
+      isResizing = false; closeSidebar(); return; 
+    }
+    
     if (clientX >= 150 && clientX < window.innerWidth * 0.8) {
       currentWidth = clientX;
       sidebar.style.width = currentWidth + 'px';
-      sidebar.style.minWidth = currentWidth + 'px';
       toggleBtn.style.left = currentWidth + 'px';
+      
+      // 時計のサイズをサイドバー幅に合わせて調整 (3.5remを上限)
+      const fontSize = Math.min(3.5, currentWidth / 80); 
+      digitalClock.style.fontSize = fontSize + 'rem';
     }
   };
 
   const endAction = (e) => {
-    if (!isResizing) {
-      // ドラッグしていなければ「クリック（開閉）」として扱う
-      if (e.target === toggleBtn) {
-        sidebar.classList.toggle('hidden');
-        toggleBtn.classList.toggle('is-hidden');
-        sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-        toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
-        if(sidebar.classList.contains('hidden')) { toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`; } 
-        else { toggleBtn.style.left = currentWidth + "px"; sidebar.style.marginLeft = "0"; }
-        setTimeout(keepInBounds, 310);
-      }
+    if (isResizing && !hasMoved) {
+        if (e.target === toggleBtn) closeSidebar();
+    } else if (sidebar.classList.contains('hidden') && e.target === toggleBtn) {
+        openSidebar();
     }
     isResizing = false;
-    toggleBtn.classList.remove('active'); // ハイライト解除
+    toggleBtn.classList.remove('active');
     document.body.style.cursor = 'default';
-    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
     keepInBounds();
   };
 
   toggleBtn.addEventListener('mousedown', (e) => startAction(e.clientX));
   window.addEventListener('mousemove', (e) => doAction(e.clientX));
   window.addEventListener('mouseup', (e) => endAction(e));
-
   toggleBtn.addEventListener('touchstart', (e) => startAction(e.touches[0].clientX), {passive: false});
   window.addEventListener('touchmove', (e) => { if (isResizing) { doAction(e.touches[0].clientX); e.preventDefault(); } }, {passive: false});
   window.addEventListener('touchend', (e) => endAction(e));
 
-  // 時計
+  // 時計描画
   function updateClock(){
-    const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
+    const d=new Date(); digitalClock.textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
     canvas.width=600; canvas.height=600; ctx.translate(300,300);
     ctx.beginPath(); ctx.arc(0,0,280,0,Math.PI*2); ctx.strokeStyle='#fff'; ctx.lineWidth=6; ctx.stroke();
@@ -240,8 +237,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if(!doc) return;
     try {
       const pg=await doc.getPage(pn); const dpr=window.devicePixelRatio||1, vp=pg.getViewport({scale:dpr*1.5});
-      cvs.width=vp.width; cvs.height=vp.height;
-      cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
+      cvs.width=vp.width; cvs.height=vp.height; cvs.style.width=(vp.width/dpr)+'px'; cvs.style.height=(vp.height/dpr)+'px';
       await pg.render({canvasContext:ctx, viewport:vp}).promise;
       document.getElementById('page-num').textContent=pn+" / "+doc.numPages;
       updateTransform();
@@ -257,8 +253,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     document.getElementById('pdf-name').textContent=f.name;
     const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; sc=1.0; posX=0; posY=0; render(); }; r.readAsArrayBuffer(f);
   };
-
-  // タッチ (translate方式)
   let lastDist=0, lastX=0, lastY=0, isPinching=false;
   container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) { isPinching=true; lastDist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY); }
