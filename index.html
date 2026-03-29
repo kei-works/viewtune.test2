@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Final</title>
+<title>Kei.works ViewTune Strict</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -17,6 +17,7 @@ aside {
   display: flex; flex-direction: column; align-items: center; 
   padding: 15px 10px 30px; box-sizing: border-box;
   overflow-y: auto; overflow-x: hidden; z-index: 1000; -webkit-overflow-scrolling: touch;
+  /* 普段の開閉アニメーションのみ。リサイズ中はJSで上書き */
   transition: transform 0.3s ease, margin-left 0.3s ease;
   flex-shrink: 0;
 }
@@ -27,7 +28,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   background: #222; border: 1px solid #444; border-left: none;
   border-radius: 0 8px 8px 0; cursor: col-resize;
   display: flex; align-items: center; justify-content: center;
-  transition: left 0.3s ease, background 0.2s, box-shadow 0.2s;
+  /* transitionを完全に削除しました。ふわふわさせません */
   touch-action: none;
 }
 #toggle-btn.active { background: #444; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
@@ -101,35 +102,37 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   let isResizing = false, currentWidth = 300, startX = 0, startTime = 0, hasMoved = false, pressTimer;
 
   const closeSidebar = () => {
-    sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
     sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    toggleBtn.style.transition = 'left 0.3s ease';
+    sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
     toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`;
     setTimeout(keepInBounds, 310);
   };
   const openSidebar = () => {
-    sidebar.classList.remove('hidden'); toggleBtn.classList.remove('is-hidden');
     sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
+    toggleBtn.style.transition = 'left 0.3s ease';
+    sidebar.classList.remove('hidden'); toggleBtn.classList.remove('is-hidden');
     toggleBtn.style.left = currentWidth + "px"; sidebar.style.marginLeft = "0";
     setTimeout(keepInBounds, 310);
   };
 
   const onStart = (clientX) => {
     startX = clientX; startTime = Date.now(); hasMoved = false; isResizing = false;
-    pressTimer = setTimeout(() => { isResizing = true; toggleBtn.classList.add('active'); }, 250);
+    pressTimer = setTimeout(() => { isResizing = true; toggleBtn.classList.add('active'); }, 200);
+    // リサイズ開始時はアニメーションを殺す
     sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
   };
 
   const onMove = (clientX) => {
     const delta = Math.abs(clientX - startX);
-    if (delta > 5) { clearTimeout(pressTimer); isResizing = true; hasMoved = true; toggleBtn.classList.add('active'); }
+    if (delta > 3) { clearTimeout(pressTimer); isResizing = true; hasMoved = true; toggleBtn.classList.add('active'); }
     if (isResizing && !sidebar.classList.contains('hidden')) {
       let newWidth = clientX;
       if (newWidth < 150) newWidth = 150;
       if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
       currentWidth = newWidth;
-      sidebar.style.width = currentWidth + 'px'; toggleBtn.style.left = currentWidth + 'px';
+      sidebar.style.width = currentWidth + 'px'; 
+      toggleBtn.style.left = currentWidth + 'px';
       const fs = Math.min(3.5, currentWidth / 80); digitalClock.style.fontSize = fs + 'rem';
     }
   };
@@ -141,10 +144,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       else closeSidebar();
     }
     isResizing = false; toggleBtn.classList.remove('active');
-    if (!sidebar.classList.contains('hidden')) {
-      sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-      toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
-    }
+    // リサイズ終了後も勝手にアニメーションさせない。開閉時のみ適用されるよう管理
     keepInBounds();
   };
 
