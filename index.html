@@ -39,15 +39,15 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   touch-action: none; font-size: 18px; color: #fff;
 }
 
-#toggle-btn:active { 
-  cursor: grabbing; 
-  background: #444; 
-  border-color: #fff; 
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+/* スマホでも維持されるハイライト用のクラス */
+#toggle-btn.is-active { 
+  background: #444 !important; 
+  border-color: #fff !important; 
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4) !important;
 }
 
 #toggle-btn.is-hidden { left: 0 !important; border-left: 1px solid #444; border-radius: 0 8px 8px 0; }
-#toggle-btn.is-hidden:active { border-left-color: #fff; }
+#toggle-btn.is-hidden.is-active { border-left-color: #fff; }
 
 #fs-btn {
   position: absolute; top: 15px; right: 15px; z-index: 150;
@@ -129,20 +129,13 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   let isResizing = false, currentWidth = 300, startX = 0, initialW = 0, moved = false;
 
   function updateBtnIcon() {
-    // 閉じている時は「→」
     if (sidebar.classList.contains('hidden') || toggleBtn.classList.contains('is-hidden')) {
       toggleBtn.textContent = "→";
-    } 
-    // 重要：掴んでリサイズ中は常に「|」
-    else if (isResizing) {
-      toggleBtn.textContent = "|";
-    }
-    // 最小値(ドラッグ中でない時)は「←」
-    else if (currentWidth <= 155) {
+    } else if (isResizing) {
+      toggleBtn.textContent = "|"; // 掴んでリサイズ中は常に「|」
+    } else if (currentWidth <= 155) {
       toggleBtn.textContent = "←"; 
-    } 
-    // 通常(ドラッグ中でない時)は「|」
-    else {
+    } else {
       toggleBtn.textContent = "|"; 
     }
   }
@@ -152,9 +145,13 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     moved = false;
     startX = e.clientX || e.touches[0].clientX;
     initialW = currentWidth;
+    
+    // ハイライトクラス追加
+    toggleBtn.classList.add('is-active');
+    
     toggleBtn.style.transition = 'none';
     sidebar.style.transition = 'none';
-    updateBtnIcon(); // アイコンを「|」に固定
+    updateBtnIcon();
   };
 
   const doDrag = (e) => {
@@ -170,7 +167,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
     if (!sidebar.classList.contains('hidden')) {
       let newW = initialW + delta;
-      
       if (newW < 80) { 
          sidebar.classList.add('hidden');
          toggleBtn.classList.add('is-hidden');
@@ -178,7 +174,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
          updateBtnIcon();
          return;
       }
-
       currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
       sidebar.style.width = currentWidth + 'px';
       sidebar.style.minWidth = currentWidth + 'px';
@@ -186,13 +181,16 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       
       const newFontSize = Math.min(3.5, currentWidth / 85);
       digitalClock.style.fontSize = newFontSize + 'rem';
-      // ドラッグ中はupdateBtnIconを呼ばない(「|」を維持)
     }
   };
 
   const finishDrag = () => {
     if (!isResizing) return;
-    isResizing = false; // ドラッグ終了
+    isResizing = false;
+    
+    // ハイライトクラス削除
+    toggleBtn.classList.remove('is-active');
+    
     toggleBtn.style.transition = 'left 0.3s ease, background 0.2s, border-color 0.2s, box-shadow 0.2s';
     sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
     
@@ -203,13 +201,12 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       toggleBtn.style.left = currentWidth + 'px';
       sidebar.style.marginLeft = "0";
     }
-    updateBtnIcon(); // 終了後の幅に応じてアイコンを更新
+    updateBtnIcon();
   };
 
   toggleBtn.onclick = () => {
     if (moved) return;
     const isHidden = sidebar.classList.contains('hidden');
-    
     if (!isHidden && currentWidth <= 155) {
       sidebar.classList.add('hidden');
       toggleBtn.classList.add('is-hidden');
@@ -217,7 +214,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       sidebar.classList.toggle('hidden');
       toggleBtn.classList.toggle('is-hidden');
     }
-
     if (sidebar.classList.contains('hidden')) {
       toggleBtn.style.left = "0px";
       sidebar.style.marginLeft = `-${currentWidth}px`;
@@ -235,7 +231,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   window.addEventListener('mouseup', finishDrag);
   window.addEventListener('touchend', finishDrag);
 
-  // --- Clock & PDF Maintain ---
+  // --- Clock & PDF ---
   function updateClock(){
     const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
@@ -256,7 +252,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   setInterval(updateClock, 1000); updateClock();
 
   let doc=null, pn=1, sc=1.0, posX=0, posY=0;
-  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
+  const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d');
   const pdfjsLib = window['pdfjs-dist/build/pdf'];
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   document.getElementById('f-p').onchange=(e)=>{
