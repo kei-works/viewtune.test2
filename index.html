@@ -1,28 +1,4 @@
-<script>
-(function(){
-  // ... (スプラッシュ、PDF、時計、オーディオのロジックは完全維持) ...
-
-  const sidebar = document.getElementById('sidebar'), toggleBtn = document.getElementById('toggle-btn'), digitalClock = document.getElementById('digital-clock');
-  let isResizing = false, currentWidth = 300;
-  let startX = 0, startTime = 0; // タップ判定用
-
-  const closeSidebar = () => {
-    sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden');
-    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
-    toggleBtn.style.left = "0px"; sidebar.style.marginLeft = `-${currentWidth}px`;
-    setTimeout(keepInBounds, 310);
-  };
-
-  const openSidebar = () => {
-    sidebar.classList.remove('hidden'); toggleBtn.classList.remove('is-hidden');
-    sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
-    toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
-    toggleBtn.style.left = currentWidth + "px"; sidebar.style.marginLeft = "0";
-    setTimeout(keepInBounds, 310);
-  };
-
-  // --- 摘みの制御: 150pxで停止 ＋ スマホでも確実なタップ判定 ---
+// --- 修正版：摘みの制御ロジック（真っ白画面回避） ---
   const startAction = (clientX) => {
     startX = clientX;
     startTime = Date.now();
@@ -35,9 +11,8 @@
 
   const doAction = (clientX) => {
     if (!isResizing) return;
-    
-    // 150pxで物理的に止める（左へはこれ以上行かせない）
     let newWidth = clientX;
+    // 150pxの壁：物理的に止める
     if (newWidth < 150) newWidth = 150; 
     if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
 
@@ -45,16 +20,18 @@
     sidebar.style.width = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
     
-    // 時計の可変サイズ（維持）
+    // 時計の可変サイズ（3.5rem上限）
     const fontSize = Math.min(3.5, currentWidth / 80); 
     digitalClock.style.fontSize = fontSize + 'rem';
   };
 
   const endAction = (clientX) => {
+    // clientX が undefined の場合のフォールバック
+    const endX = (clientX !== undefined) ? clientX : startX;
     const duration = Date.now() - startTime;
-    const moveX = Math.abs(clientX - startX);
+    const moveX = Math.abs(endX - startX);
 
-    // タップ判定（移動距離が短く、時間も短い場合）
+    // タップ判定：10px以内の移動かつ300ms以内なら開閉
     if (moveX < 10 && duration < 300) {
       if (sidebar.classList.contains('hidden')) {
         openSidebar();
@@ -78,21 +55,22 @@
   window.addEventListener('mousemove', (e) => doAction(e.clientX));
   window.addEventListener('mouseup', (e) => endAction(e.clientX));
 
-  // Touch Events (iOS/Android対応)
+  // Touch Events (真っ白画面対策)
   toggleBtn.addEventListener('touchstart', (e) => {
-    startAction(e.touches[0].clientX);
+    if (e.touches && e.touches[0]) {
+      startAction(e.touches[0].clientX);
+    }
   }, {passive: false});
+
   window.addEventListener('touchmove', (e) => {
-    if (isResizing) {
+    if (isResizing && e.touches && e.touches[0]) {
       doAction(e.touches[0].clientX);
       e.preventDefault();
     }
   }, {passive: false});
-  window.addEventListener('touchend', (e) => {
-    // touchendではtouches[0]がないため、changedTouchesを使用
-    endAction(e.changedTouches[0].clientX);
-  });
 
-  // ... (残りのPDF描画・時計更新ロジックは一切変更なし) ...
-})();
-</script>
+  window.addEventListener('touchend', (e) => {
+    // changedTouches がない場合のエラーを回避
+    const touchX = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientX : undefined;
+    endAction(touchX);
+  });
