@@ -102,8 +102,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }
 
   const startDrag = (e) => {
-    // 指示内容：幅が150px以下の時はドラッグ（リサイズ）を無効化
-    if (sidebar.classList.contains('hidden') || currentWidth <= 150) return;
+    if (sidebar.classList.contains('hidden')) return; // 閉じている時はドラッグ不可
     
     isResizing = true; moved = false;
     startX = e.clientX || e.touches[0].clientX;
@@ -117,6 +116,10 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     if (!isResizing) return;
     const x = e.clientX || e.touches[0].clientX;
     const delta = x - startX;
+    
+    // 指示内容：150pxの時、さらに左（縮める方向）へ動かそうとしたら無視
+    if (currentWidth <= 150 && delta < 0) return;
+
     if (Math.abs(delta) > 5) moved = true;
     let newW = initialW + delta;
     if (newW < 80) { 
@@ -144,7 +147,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   toggleBtn.onclick = () => {
     const isHidden = sidebar.classList.contains('hidden');
-    if (moved && !isHidden) return;
+    if (moved && !isHidden) return; // ドラッグ移動した場合はクリック処理（閉じる）をスルー
     if (!isHidden && currentWidth <= 155) { sidebar.classList.add('hidden'); toggleBtn.classList.add('is-hidden'); } 
     else {
       const willOpen = isHidden;
