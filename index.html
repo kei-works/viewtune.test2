@@ -53,19 +53,19 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   display: flex; align-items: center; justify-content: center;
 }
 
-/* リサイズ領域の調整 */
+/* リサイズ領域の調整（幅20px） */
 #resizer { 
   width: 20px; cursor: col-resize; background: transparent; z-index: 101; 
   margin-left: -10px; flex-shrink: 0; 
   display: flex; justify-content: center; align-items: center;
-  transition: background 0.2s;
 }
-/* 触れたとき（ホバー・アクティブ時）にハイライト */
+/* ハイライトの線（通常は透明、高さ全体、色は白） */
 #resizer::after {
-  content: ""; width: 2px; height: 60px; background: transparent; transition: background 0.2s;
+  content: ""; width: 2px; height: 100%; background: transparent; transition: background 0.1s;
 }
-#resizer:hover::after, #resizer:active::after {
-  background: rgba(255,255,255,0.4); /* ハイライト色 */
+/* ホバー時、およびリサイズ中（.resizingクラスが付与されたとき）に白くハイライト */
+#resizer:hover::after, #resizer.resizing::after {
+  background: #fff;
 }
 
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
@@ -185,8 +185,10 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     setTimeout(keepInBounds, 310);
   };
 
-  resizer.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; });
-  resizer.addEventListener('touchstart', (e) => { isResizing = true; });
+  // リサイズ開始時：ドラッグ中もハイライトを維持するためクラスを付与
+  resizer.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; resizer.classList.add('resizing'); });
+  resizer.addEventListener('touchstart', (e) => { isResizing = true; resizer.classList.add('resizing'); });
+  
   const doResize = (clientX) => {
     if (!isResizing || sidebar.classList.contains('hidden')) return;
     if (clientX >= 150 && clientX < window.innerWidth * 0.8) {
@@ -201,7 +203,9 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   };
   window.addEventListener('mousemove', (e) => doResize(e.clientX));
   window.addEventListener('touchmove', (e) => { if (isResizing) { doResize(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
-  const endResize = () => { isResizing = false; document.body.style.cursor = 'default'; sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease'; toggleBtn.style.transition = 'left 0.3s ease, background 0.2s'; keepInBounds(); };
+  
+  // リサイズ終了時：クラスを削除してハイライトを消す
+  const endResize = () => { isResizing = false; document.body.style.cursor = 'default'; resizer.classList.remove('resizing'); sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease'; toggleBtn.style.transition = 'left 0.3s ease, background 0.2s'; keepInBounds(); };
   window.addEventListener('mouseup', endResize); window.addEventListener('touchend', endResize);
 
   function updateClock(){
