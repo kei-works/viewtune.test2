@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kei.works ViewTune Perfect</title>
+<title>Kei.works ViewTune Final Fix</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <style>
@@ -30,7 +30,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   transition: left 0.3s ease, background 0.2s, box-shadow 0.2s;
   touch-action: none;
 }
-/* ハイライト復活 */
 #toggle-btn.active { background: #444; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
 #toggle-btn::after { content: ""; width: 2px; height: 20px; background: #fff; border-radius: 2px; }
 #toggle-btn.is-hidden { left: 0 !important; cursor: pointer; }
@@ -118,16 +117,17 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   const startAction = (clientX) => {
     startX = clientX; startTime = Date.now(); hasMoved = false;
-    if (sidebar.classList.contains('hidden')) return; 
-    isResizing = true; toggleBtn.classList.add('active'); // ハイライトON
-    sidebar.style.transition = 'none'; toggleBtn.style.transition = 'none';
+    isResizing = true; 
+    toggleBtn.classList.add('active');
+    sidebar.style.transition = 'none'; 
+    toggleBtn.style.transition = 'none';
   };
 
   const doAction = (clientX) => {
     if (!isResizing) return;
     let newWidth = clientX;
     if (Math.abs(newWidth - startX) > 5) hasMoved = true;
-    if (newWidth < 150) newWidth = 150; // 物理停止
+    if (newWidth < 150) newWidth = 150;
     if (newWidth > window.innerWidth * 0.8) newWidth = window.innerWidth * 0.8;
     currentWidth = newWidth;
     sidebar.style.width = currentWidth + 'px'; toggleBtn.style.left = currentWidth + 'px';
@@ -135,13 +135,14 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   };
 
   const endAction = () => {
+    if (!isResizing) return;
     const duration = Date.now() - startTime;
-    // 指を離したとき：動いていなければ開閉、動いていればその場で止まる
     if (!hasMoved || duration < 200) {
       if (sidebar.classList.contains('hidden')) openSidebar();
       else closeSidebar();
     }
-    isResizing = false; toggleBtn.classList.remove('active'); // ハイライトOFF
+    isResizing = false; 
+    toggleBtn.classList.remove('active');
     if (!sidebar.classList.contains('hidden')) {
       sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease';
       toggleBtn.style.transition = 'left 0.3s ease, background 0.2s';
@@ -150,10 +151,19 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   };
 
   toggleBtn.addEventListener('mousedown', (e) => startAction(e.clientX));
+  toggleBtn.addEventListener('touchstart', (e) => { 
+    if (e.touches[0]) startAction(e.touches[0].clientX); 
+  }, {passive: false});
+
   window.addEventListener('mousemove', (e) => doAction(e.clientX));
+  window.addEventListener('touchmove', (e) => { 
+    if (isResizing && e.touches[0]) { 
+      doAction(e.touches[0].clientX); 
+      e.preventDefault(); 
+    } 
+  }, {passive: false});
+
   window.addEventListener('mouseup', endAction);
-  toggleBtn.addEventListener('touchstart', (e) => { if (e.touches[0]) startAction(e.touches[0].clientX); }, {passive: false});
-  window.addEventListener('touchmove', (e) => { if (isResizing && e.touches[0]) { doAction(e.touches[0].clientX); e.preventDefault(); } }, {passive: false});
   window.addEventListener('touchend', endAction);
 
   // 時計更新
