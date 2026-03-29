@@ -53,7 +53,20 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   display: flex; align-items: center; justify-content: center;
 }
 
-#resizer { width: 14px; cursor: col-resize; background: transparent; z-index: 101; margin-left: -7px; flex-shrink: 0; }
+/* リサイズ領域の調整 */
+#resizer { 
+  width: 20px; cursor: col-resize; background: transparent; z-index: 101; 
+  margin-left: -10px; flex-shrink: 0; 
+  display: flex; justify-content: center; align-items: center;
+  transition: background 0.2s;
+}
+/* 触れたとき（ホバー・アクティブ時）にハイライト */
+#resizer::after {
+  content: ""; width: 2px; height: 60px; background: transparent; transition: background 0.2s;
+}
+#resizer:hover::after, #resizer:active::after {
+  background: rgba(255,255,255,0.4); /* ハイライト色 */
+}
 
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
 
@@ -132,7 +145,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 <script>
 (function(){
-  // --- 初期アニメーション ---
   const splash = document.getElementById('splash'), main = document.getElementById('main-content');
   let unlocked = false;
   function unlock() { if(!unlocked){ unlocked=true; splash.style.opacity='0'; main.style.visibility='visible'; setTimeout(()=>splash.style.display='none', 1000); } }
@@ -144,7 +156,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const digitalClock = document.getElementById('digital-clock');
   let isResizing = false, currentWidth = 300;
 
-  // 全画面
   fsBtn.onclick = () => {
     const target = main; 
     if (target.requestFullscreen) {
@@ -162,7 +173,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   document.addEventListener('fullscreenchange', updateFsBtn);
   document.addEventListener('webkitfullscreenchange', updateFsBtn);
 
-  // --- サイドバー開閉とタブの同期 ---
   toggleBtn.onclick = (e) => {
     e.stopPropagation();
     sidebar.classList.toggle('hidden'); 
@@ -175,7 +185,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     setTimeout(keepInBounds, 310);
   };
 
-  // --- リサイズ機能 ---
   resizer.addEventListener('mousedown', () => { isResizing = true; document.body.style.cursor = 'col-resize'; });
   resizer.addEventListener('touchstart', (e) => { isResizing = true; });
   const doResize = (clientX) => {
@@ -186,7 +195,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
       sidebar.style.width = currentWidth + 'px'; sidebar.style.minWidth = currentWidth + 'px';
       toggleBtn.style.left = currentWidth + 'px';
       
-      // 時計フォントサイズの動的調整（最大3.5rem）
       const newFontSize = Math.min(3.5, currentWidth / 85);
       digitalClock.style.fontSize = newFontSize + 'rem';
     }
@@ -196,7 +204,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   const endResize = () => { isResizing = false; document.body.style.cursor = 'default'; sidebar.style.transition = 'transform 0.3s ease, margin-left 0.3s ease'; toggleBtn.style.transition = 'left 0.3s ease, background 0.2s'; keepInBounds(); };
   window.addEventListener('mouseup', endResize); window.addEventListener('touchend', endResize);
 
-  // 時計
   function updateClock(){
     const d=new Date(); document.getElementById('digital-clock').textContent=d.toTimeString().split(' ')[0];
     const canvas=document.getElementById('clock-cvs'), ctx=canvas.getContext('2d');
@@ -216,7 +223,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   function drawHand(ctx,deg,len,w,col){ ctx.save(); ctx.rotate(deg*Math.PI/180); ctx.beginPath(); ctx.moveTo(0,30); ctx.lineTo(0,-len); ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke(); ctx.restore(); }
   setInterval(updateClock, 1000); updateClock();
 
-  // --- PDF制御 ---
   let doc=null, pn=1, sc=1.0, posX=0, posY=0, isFreeMode=true;
   const cvs=document.getElementById('pdf-canvas'), ctx=cvs.getContext('2d'), container=document.getElementById('pdf-container');
   
@@ -259,7 +265,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const r=new FileReader(); r.onload=async function(){ doc=await pdfjsLib.getDocument({data:new Uint8Array(this.result)}).promise; pn=1; sc=1.0; posX=0; posY=0; render(); }; r.readAsArrayBuffer(f);
   };
 
-  // --- タッチ操作 ---
   let lastDist=0, lastX=0, lastY=0, isPinching=false;
   container.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2) { isPinching=true; lastDist=Math.hypot(e.touches[0].pageX-e.touches[1].pageX, e.touches[0].pageY-e.touches[1].pageY); }
@@ -283,7 +288,6 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
   container.addEventListener('touchend', () => { if(isFreeMode) keepInBounds(); });
 
-  // 曲再生
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a');
   fa.onchange=(e)=>{ if(e.target.files[0]) { au.src=URL.createObjectURL(e.target.files[0]); document.getElementById('audio-name').textContent=e.target.files[0].name; pb.textContent="▶"; } };
   pb.onclick=()=>{ if(au.src){ if(au.paused){ au.play(); pb.textContent="||"; } else { au.pause(); pb.textContent="▶"; } } };
