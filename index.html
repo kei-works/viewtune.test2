@@ -30,7 +30,7 @@ aside {
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 #toggle-btn {
-  position: absolute; top: 20px; left: 300px;
+  position: absolute; bottom: 50px; left: 300px; /* 位置を上から下（bottom）に変更 */
   z-index: 9999; width: 35px; height: 65px; 
   background: #222; border: 1px solid #444; border-left: none;
   border-radius: 0 8px 8px 0; cursor: grab;
@@ -276,11 +276,11 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }, { passive: false });
   container.addEventListener('touchend', () => { if(isFreeMode) keepInBounds(); });
 
-  // --- オーディオ機能（時間表示修正版） ---
+  // --- オーディオ機能（iOS対応・時間表示修正版） ---
   const au=new Audio(), pb=document.getElementById('p-b'), fa=document.getElementById('f-a'), tt=document.getElementById('time-text');
   
   function fmtTime(s) {
-    if (isNaN(s)) return "0:00";
+    if (isNaN(s) || s === Infinity) return "0:00";
     const m = Math.floor(s / 60);
     const rs = Math.floor(s % 60);
     return `${m}:${rs < 10 ? '0' : ''}${rs}`;
@@ -291,23 +291,33 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
   }
 
   fa.onchange=(e)=>{ 
-    if(e.target.files[0]) { 
-      au.src=URL.createObjectURL(e.target.files[0]); 
-      document.getElementById('audio-name').textContent=e.target.files[0].name; 
+    const file = e.target.files[0];
+    if(file) { 
+      au.pause();
+      au.src=URL.createObjectURL(file); 
+      au.load();
+      document.getElementById('audio-name').textContent=file.name; 
       pb.textContent="▶";
-      au.onloadedmetadata = updateAudioTime; // メタデータ読み込み完了時に時間を表示
     } 
   };
   
   pb.onclick=()=>{ 
     if(au.src){ 
-      if(au.paused){ au.play(); pb.textContent="||"; } 
-      else { au.pause(); pb.textContent="▶"; } 
+      if(au.paused){ 
+        const playPromise = au.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => { pb.textContent="||"; }).catch(error => { console.error("Playback failed:", error); });
+        }
+      } else { 
+        au.pause(); 
+        pb.textContent="▶"; 
+      } 
     } 
   };
 
-  au.ontimeupdate = updateAudioTime; // 再生中に時間を更新
-  au.onended = () => { pb.textContent = "▶"; au.currentTime = 0; };
+  au.addEventListener('loadedmetadata', updateAudioTime);
+  au.addEventListener('timeupdate', updateAudioTime);
+  au.addEventListener('ended', () => { pb.textContent = "▶"; au.currentTime = 0; });
 
   // Fullscreen
   const fsBtn = document.getElementById('fs-btn');
