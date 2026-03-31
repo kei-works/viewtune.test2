@@ -30,7 +30,10 @@ aside {
 aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 
 #toggle-btn {
-  position: absolute; bottom: 50px; left: 300px; /* 位置を上から下（bottom）に変更 */
+  position: absolute; 
+  /* 画面下のセーフエリア（ホームバー等）を自動計算し、そこから50px上に配置 */
+  bottom: calc(20px + env(safe-area-inset-bottom)); 
+  left: 300px; 
   z-index: 9999; width: 35px; height: 65px; 
   background: #222; border: 1px solid #444; border-left: none;
   border-radius: 0 8px 8px 0; cursor: grab;
