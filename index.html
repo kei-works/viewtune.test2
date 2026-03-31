@@ -46,11 +46,20 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
 #toggle-btn.is-hidden { left: 0 !important; border-left: 1px solid #444; border-radius: 0 8px 8px 0; }
 
 #fs-btn {
-  position: absolute; top: 15px; right: 15px; z-index: 150;
-  width: 36px; height: 36px; background: rgba(255,255,255,0.1);
+  position: absolute; top: 10px; right: 5px; z-index: 150;
+  width: 32px; height: 32px; background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.2); color: #fff;
   border-radius: 6px; cursor: pointer; backdrop-filter: blur(5px);
   display: flex; align-items: center; justify-content: center;
+  /* ↓ 白背景対策：黒い影を追加 ↓ */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); 
+  transition: background 0.2s; /* ホバー時のアニメーション用 */
+}
+
+/* ↓ 白背景対策：ホバー/タップ時に背景を黒くする ↓ */
+#fs-btn:hover, #fs-btn:active {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .sep { width: 100%; border-bottom: 1px solid #444; margin: 15px 0; flex-shrink: 0; }
