@@ -174,7 +174,7 @@ aside.hidden { transform: translateX(-100%); margin-left: -300px; }
     const delta = x - startX;
     if (Math.abs(delta) > 5) moved = true;
     let newW = initialW + delta;
-    currentWidth = Math.min(Math.max(newW, 150), window.innerWidth * 0.8);
+    currentWidth = Math.min(Math.max(newW, 180), window.innerWidth * 0.8);
     sidebar.style.width = currentWidth + 'px';
     sidebar.style.minWidth = currentWidth + 'px';
     toggleBtn.style.left = currentWidth + 'px';
